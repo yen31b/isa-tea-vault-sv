@@ -129,10 +129,14 @@ always_comb begin
             5'b10000, //VCLR
             5'b10001, //VAUTH
             5'b10010: begin  //VLOGOUT
+				
+				
+				// VSTR/VAUTH: registro general fuente
+            // VLD: destino seguro k0-k3
 
                 format_type = FORMAT_K;
 
-                slot  = instruction[26:24]; // k register /slot 
+                slot  = instruction[26:24]; // k dest /slot 
                 palabra = instruction[23:21];
                 rs1 = instruction[20:18]; //Para VAUTH rs1 queda en bits [20:18]
 					 reservado = instruction[17:0];
@@ -151,7 +155,7 @@ always_comb begin
                 rs1 = instruction[23:21];
                 rs2 = instruction[20:18];
                 rs3 = instruction[17:15];
-                imm = {6'b000000, instruction[14:0]}; // offset/inmediato de 15 bits extendido a 21
+                imm = {{6{instruction[14]}}, instruction[14:0]};// Extension con signo
             end
 				
 				default: begin
