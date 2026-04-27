@@ -26,6 +26,8 @@ module control_unit (
     output logic       index_inc, //Indica que se debe incrementar el índice del loop. Se usa para BEQADD
     output logic       illegal_access, //Se activa cuando alguien intenta usar una instrucción no permitida.
 
+	 output logic privileged_instr,
+	 
     output logic [3:0] alu_op //Indica qué operación debe hacer la ALU.
 );
 
@@ -94,6 +96,8 @@ module control_unit (
         tea_enable        = 1'b0;
         index_inc         = 1'b0;
         illegal_access    = 1'b0;
+		  
+		  privileged_instr = 1'b0;
 
         alu_op            = ALU_ADD;
 
@@ -194,6 +198,7 @@ module control_unit (
             end
 
             OP_VSTR: begin
+				    privileged_instr = 1'b1;
                 if (auth_status) begin
                     vault_write = 1'b1;
                 end
@@ -203,6 +208,7 @@ module control_unit (
             end
 
             OP_VLD: begin
+					 privileged_instr = 1'b1;
                 if (auth_status) begin
                     vault_load_secure = 1'b1;
                 end
@@ -212,6 +218,7 @@ module control_unit (
             end
 
             OP_VCLR: begin
+					 privileged_instr = 1'b1;
                 if (auth_status) begin
                     vault_clear = 1'b1;
                 end
@@ -224,6 +231,8 @@ module control_unit (
             // INSTRUCCIONES TEA
             // -----------------------------
             OP_BEQADD: begin
+					 privileged_instr = 1'b1;
+				
                 if (auth_status) begin
                     branch       = 1'b1;
                     branch_taken = zero_flag;
@@ -236,6 +245,7 @@ module control_unit (
             end
 
             OP_XORTEA: begin
+					 privileged_instr = 1'b1;
                 if (auth_status) begin
                     tea_enable = 1'b1;
                     reg_write  = 1'b1;
@@ -249,12 +259,14 @@ module control_unit (
             //  OPERACIONES DE DESPLAZAMIENTOS CON INMEDIATO
             // -----------------------------
             OP_SRLI: begin
+				    privileged_instr = 1'b1;
                 reg_write = 1'b1;
                 use_imm   = 1'b1;
                 alu_op    = ALU_SRL;
             end
 
             OP_SLLI: begin
+				    privileged_instr = 1'b1;
                 reg_write = 1'b1;
                 use_imm   = 1'b1;
                 alu_op    = ALU_SLL;
