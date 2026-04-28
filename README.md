@@ -39,7 +39,7 @@ risc-tea-vault-sv/
 ├── README.md
 ├── Makefile
 ├── src/
-├── testbench/
+├── tb/
 └── docs/
 
 ```
