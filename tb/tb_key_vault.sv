@@ -18,7 +18,7 @@ module tb_key_vault;
     logic        clk, rst;
     logic        vault_write, vault_load_secure, vault_clear;
     logic        auth_status;
-    logic [2:0]  slot, palabra;
+    logic [2:0]  slot, word;
     logic [31:0] rs1_data;
     logic        exc_out;
     logic [31:0] k_reg [0:3];
@@ -32,7 +32,7 @@ module tb_key_vault;
         .vault_clear        (vault_clear),
         .auth_status        (auth_status),
         .slot               (slot),
-        .palabra            (palabra),
+        .word            (word),
         .rs1_data           (rs1_data),
         .exc_out            (exc_out),
         .k_reg              (k_reg)
@@ -41,9 +41,17 @@ module tb_key_vault;
     initial clk = 0;
     always #5 clk = ~clk;
 
-    // pulso de 1 ciclo
-    task automatic pulso(ref logic señal);
-        señal = 1; @(posedge clk); #1; señal = 0;
+    // Tarea para activar una señal durante 1 ciclo
+    task automatic pulso(input int signal_type);
+        case(signal_type)
+            0: vault_write       = 1;
+            1: vault_load_secure = 1;
+            2: vault_clear       = 1;
+        endcase
+        @(posedge clk); #1;
+        vault_write       = 0;
+        vault_load_secure = 0;
+        vault_clear       = 0;
     endtask
 
     // Pruebas
@@ -54,7 +62,7 @@ module tb_key_vault;
         // Reset
         rst = 1; vault_write = 0; vault_load_secure = 0;
         vault_clear = 0; auth_status = 0;
-        slot = 0; palabra = 0; rs1_data = 0;
+        slot = 0; word = 0; rs1_data = 0;
         @(posedge clk); #1; rst = 0;
 
         $display("\n=== tb_key_vault: Iniciando pruebas ===\n");
@@ -63,8 +71,8 @@ module tb_key_vault;
         
         $display("--- TEST 1: VSTR autenticado ---");
         auth_status = 1;
-        slot = 3'd0; palabra = 3'd0; rs1_data = 32'hA1B2C3D4;
-        pulso(vault_write);
+        slot = 3'd0; word = 3'd0; rs1_data = 32'hA1B2C3D4;
+        pulso(0);  // vault_write
 
         // Verificar que el dato quedó en vault[0][0]
         if (dut.vault[0][0] === 32'hA1B2C3D4)
@@ -82,8 +90,8 @@ module tb_key_vault;
         
         $display("\n--- TEST 2: VSTR sin autenticación ---");
         auth_status = 0;
-        slot = 3'd1; palabra = 3'd0; rs1_data = 32'hDEADBEEF;
-        pulso(vault_write);
+        slot = 3'd1; word = 3'd0; rs1_data = 32'hDEADBEEF;
+        pulso(0);  // vault_write
 
         if (exc_out === 1'b1)
             $display("  PASS exc_out=1 (excepción generada correctamente)");
@@ -102,11 +110,11 @@ module tb_key_vault;
         $display("\n--- TEST 3: VLD autenticado ---");
         auth_status = 1;
         // Primero escribir algo en vault[0][1]
-        slot = 3'd0; palabra = 3'd1; rs1_data = 32'hE5F60718;
-        pulso(vault_write);
+        slot = 3'd0; word = 3'd1; rs1_data = 32'hE5F60718;
+        pulso(0);  // vault_write
         // Ahora VLD: cargar vault[0][1] → k_internal[1]
-        slot = 3'd0; palabra = 3'd1;
-        pulso(vault_load_secure);
+        slot = 3'd0; word = 3'd1;
+        pulso(1);  // vault_load_secure
 
         if (k_reg[1] === 32'hE5F60718)
             $display("  PASS k_reg[1]=0x%08h (cargado correctamente)", k_reg[1]);
@@ -118,8 +126,8 @@ module tb_key_vault;
         
         $display("\n--- TEST 4: VLD sin autenticación ---");
         auth_status = 0;
-        slot = 3'd0; palabra = 3'd0;
-        pulso(vault_load_secure);
+        slot = 3'd0; word = 3'd0;
+        pulso(1);  // vault_load_secure
 
         if (exc_out === 1'b1)
             $display("  PASS exc_out=1 (excepción correcta)");
@@ -140,12 +148,12 @@ module tb_key_vault;
         // Escribir las 4 palabras del slot 0
         slot = 3'd0;
         for (int i = 0; i < 4; i++) begin
-            palabra = i[2:0]; rs1_data = 32'hCAFEBABE;
-            pulso(vault_write);
+            word = i[2:0]; rs1_data = 32'hCAFEBABE;
+            pulso(0);  // vault_write
         end
         // Ahora borrar slot 0
         slot = 3'd0;
-        pulso(vault_clear);
+        pulso(2);  // vault_clear
 
         if (dut.vault[0][0] === 32'h0 && dut.vault[0][1] === 32'h0 &&
             dut.vault[0][2] === 32'h0 && dut.vault[0][3] === 32'h0)
@@ -159,12 +167,12 @@ module tb_key_vault;
         $display("\n--- TEST 6: VCLR sin autenticación ---");
         // Primero escribir en slot 2 con auth
         auth_status = 1;
-        slot = 3'd2; palabra = 3'd0; rs1_data = 32'h11223344;
-        pulso(vault_write);
+        slot = 3'd2; word = 3'd0; rs1_data = 32'h11223344;
+        pulso(0);  // vault_write
         // Intentar borrar sin auth
         auth_status = 0;
         slot = 3'd2;
-        pulso(vault_clear);
+        pulso(2);  // vault_clear
 
         if (exc_out === 1'b1)
             $display("  PASS exc_out=1 (excepción correcta)");
@@ -183,17 +191,17 @@ module tb_key_vault;
         auth_status = 1;
         slot = 3'd1;
         // Escribir 4 palabras
-        palabra = 3'd0; rs1_data = 32'hA1B2C3D4; pulso(vault_write);
-        palabra = 3'd1; rs1_data = 32'hE5F60718; pulso(vault_write);
-        palabra = 3'd2; rs1_data = 32'h293A4B5C; pulso(vault_write);
-        palabra = 3'd3; rs1_data = 32'h6D7E8F90; pulso(vault_write);
+        word = 3'd0; rs1_data = 32'hA1B2C3D4; pulso(0);
+        word = 3'd1; rs1_data = 32'hE5F60718; pulso(0);
+        word = 3'd2; rs1_data = 32'h293A4B5C; pulso(0);
+        word = 3'd3; rs1_data = 32'h6D7E8F90; pulso(0);
 
         // Cargar las 4 palabras a k_reg
         slot = 3'd1;
-        palabra = 3'd0; pulso(vault_load_secure);
-        palabra = 3'd1; pulso(vault_load_secure);
-        palabra = 3'd2; pulso(vault_load_secure);
-        palabra = 3'd3; pulso(vault_load_secure);
+        word = 3'd0; pulso(1);
+        word = 3'd1; pulso(1);
+        word = 3'd2; pulso(1);
+        word = 3'd3; pulso(1);
 
         if (k_reg[0]===32'hA1B2C3D4 && k_reg[1]===32'hE5F60718 &&
             k_reg[2]===32'h293A4B5C && k_reg[3]===32'h6D7E8F90)
@@ -208,8 +216,8 @@ module tb_key_vault;
         $display("\n--- TEST 8: No interferencia entre slots ---");
         auth_status = 1;
         // Escribir en slot 3
-        slot = 3'd3; palabra = 3'd0; rs1_data = 32'hBEEFCAFE;
-        pulso(vault_write);
+        slot = 3'd3; word = 3'd0; rs1_data = 32'hBEEFCAFE;
+        pulso(0);  // vault_write
 
         // Verificar que slot 1 sigue igual
         if (dut.vault[1][0] === 32'hA1B2C3D4)

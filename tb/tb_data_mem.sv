@@ -54,8 +54,8 @@ module tb_data_mem;
 
     // ---- Pruebas principales ----
     initial begin
-        $dumpfile("vcd/tb_dmem.vcd");
-        $dumpvars(0, tb_dmem);
+        $dumpfile("vcd/tb_data_mem.vcd");
+        $dumpvars(0, tb_data_mem);
 
         // Reset
         rst       = 1;
@@ -66,7 +66,7 @@ module tb_data_mem;
         @(posedge clk); #1;
         rst = 0;
 
-        $display("\n=== tb_dmem: Iniciando pruebas ===\n");
+        $display("\n=== tb_data_mem: Iniciando pruebas ===\n");
 
 
         // TEST 1: Escritura y lectura
@@ -142,7 +142,7 @@ module tb_data_mem;
         test_store_load(32'h00000000, 32'h00000000, "T5-all-zeros");
         test_store_load(32'h0000FFFC, 32'hBEEFCAFE, "T5-max-addr"); // última palabra de 64KB
 
-        $display("\n=== tb_dmem: Pruebas completadas ===\n");
+        $display("\n=== tb_data_mem: Pruebas completadas ===\n");
         $finish;
     end
 
