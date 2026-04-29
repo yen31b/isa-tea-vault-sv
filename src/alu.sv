@@ -60,7 +60,7 @@ module alu (
         endcase
     end
 
-    assign z = (result == 32'b0);
+    assign z = (alu_op == 4'b1011) ? (a == b) : (result == 32'b0);
     assign n = res_sign;
     
     assign flags = {2'b0, v, carry, n, z};

@@ -37,7 +37,11 @@ module tb_alu;
         auth_in = 1; #10;
         
         // Test beqadd increment logic with AUTH
-        a = 32'd100; alu_op = 4'b1011; #10;
+        // Case: A == B (Should set Z flag)
+        auth_in = 1; a = 32'd32; b = 32'd32; c = 32'd10; alu_op = 4'b1011; #10;
+        
+        // Case: A != B (Should NOT set Z flag)
+        a = 32'd32; b = 32'd31; c = 32'd10; #10;
 
         $finish;
     end
