@@ -2,26 +2,38 @@
 
 IVERILOG = iverilog
 VVP = vvp
-GTKWAVE = gtkwave
+FLAGS = -g2012
 
-SRC = src/alu.sv src/register_file.sv src/status_reg.sv src/datapath.sv
+# Source files
+SRC_ALU  = src/alu.sv
+SRC_REG  = src/register_file.sv
+SRC_SR   = src/status_reg.sv
+SRC_DP   = src/datapath.sv
+
+# Testbench files
 TB_ALU = testbench/tb_alu.sv
 TB_REG = testbench/tb_register_file.sv
+TB_DP  = testbench/tb_datapath.sv
 
 # Default target
-all: alu_sim reg_sim
+all: alu reg dp
 
 # ALU Simulation
-alu_sim: $(SRC) $(TB_ALU)
-	$(IVERILOG) -g2012 -o alu_sim.vvp src/alu.sv $(TB_ALU)
+alu: $(SRC_ALU) $(TB_ALU)
+	$(IVERILOG) $(FLAGS) -o alu_sim.vvp $(SRC_ALU) $(TB_ALU)
 	$(VVP) alu_sim.vvp
 
 # Register File Simulation
-reg_sim: $(SRC) $(TB_REG)
-	$(IVERILOG) -g2012 -o reg_sim.vvp src/register_file.sv $(TB_REG)
+reg: $(SRC_REG) $(TB_REG)
+	$(IVERILOG) $(FLAGS) -o reg_sim.vvp $(SRC_REG) $(TB_REG)
 	$(VVP) reg_sim.vvp
+
+# Datapath Simulation
+dp: $(SRC_ALU) $(SRC_REG) $(SRC_SR) $(SRC_DP) $(TB_DP)
+	$(IVERILOG) $(FLAGS) -o dp_sim.vvp $(SRC_ALU) $(SRC_REG) $(SRC_SR) $(SRC_DP) $(TB_DP)
+	$(VVP) dp_sim.vvp
 
 clean:
 	rm -f *.vvp *.vcd
 
-.PHONY: all clean alu_sim reg_sim
+.PHONY: all clean alu reg dp

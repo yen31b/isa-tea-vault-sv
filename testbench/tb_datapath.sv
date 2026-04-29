@@ -6,7 +6,7 @@ module tb_datapath;
     logic [3:0]  alu_op;
     logic        alu_src_b;
     logic        alu_src_c;
-    logic [2:0]  rs1_addr, rs2_addr, rs3_addr, rd_addr;
+    logic [4:0]  rs1_addr, rs2_addr, rs3_addr, rd_addr;
     logic [31:0] immediate;
     logic [31:0] mem_data_in;
     

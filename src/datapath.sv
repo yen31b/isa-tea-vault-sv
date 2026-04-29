@@ -11,10 +11,10 @@ module datapath (
     input  logic        alu_src_c,   // For xortea
     
     // Register addresses (from Instruction Decoder)
-    input  logic [2:0]  rs1_addr,
-    input  logic [2:0]  rs2_addr,
-    input  logic [2:0]  rs3_addr,
-    input  logic [2:0]  rd_addr,
+    input  logic [4:0]  rs1_addr,
+    input  logic [4:0]  rs2_addr,
+    input  logic [4:0]  rs3_addr,
+    input  logic [4:0]  rd_addr,
     
     // Data from outside
     input  logic [31:0] immediate,
