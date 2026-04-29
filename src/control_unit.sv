@@ -54,9 +54,10 @@ module control_unit (
     localparam OP_VAUTH   = 5'b10001;
     localparam OP_VLOGOUT = 5'b10010;
     localparam OP_BEQADD  = 5'b10011;
-    localparam OP_XORTEA  = 5'b10100;
+    localparam OP_TEA_ENC = 5'b10100;
     localparam OP_SRLI    = 5'b10101;
     localparam OP_SLLI    = 5'b10110;
+    localparam OP_TEA_DEC = 5'b10111;
 
     // -----------------------------
     // ALU OPERATIONS
@@ -244,7 +245,18 @@ module control_unit (
                 end
             end
 
-            OP_XORTEA: begin
+            OP_TEA_ENC: begin
+					 privileged_instr = 1'b1;
+                if (auth_status) begin
+                    tea_enable = 1'b1;
+                    reg_write  = 1'b1;
+                end
+                else begin
+                    illegal_access = 1'b1;
+                end
+            end
+
+            OP_TEA_DEC: begin
 					 privileged_instr = 1'b1;
                 if (auth_status) begin
                     tea_enable = 1'b1;

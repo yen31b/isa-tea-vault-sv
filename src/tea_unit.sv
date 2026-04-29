@@ -2,9 +2,9 @@
 // Unidad hardware de cifrado/descifrado TEA (Tiny Encryption Algorithm)
 // 32 rondas, DELTA = 0x9e3779b9
 //
-// Instrucciones soportadas (seleccionadas por la señal 'encrypt'):
-//   TEA_ENC  (encrypt=1): ejecuta tea_enc_round x32 → cifrado
-//   TEA_DEC  (encrypt=0): ejecuta tea_dec_round x32 → descifrado
+// Instrucciones soportadas (opcode desde control_unit, encrypt desde top.sv):
+//   TEA_ENC  opcode=5'b10100  encrypt=1 → ejecuta tea_enc_round x32 → cifrado
+//   TEA_DEC  opcode=5'b10111  encrypt=0 → ejecuta tea_dec_round x32 → descifrado
 //
 // Interfaz con el pipeline:
 //   - tea_enable (control_unit) → start

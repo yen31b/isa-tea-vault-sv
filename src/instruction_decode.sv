@@ -147,7 +147,8 @@ always_comb begin
             // FORMATO T (TEA)
             //--------------------------------
             5'b10011, // BEQADD
-            5'b10100: begin //XORTEA
+            5'b10100, // TEA_ENC
+            5'b10111: begin // TEA_DEC
 
                 format_type = FORMAT_T;
 
