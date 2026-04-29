@@ -30,6 +30,10 @@ module datapath (
     logic [31:0] rs1_data, rs2_data, rs3_data;
     logic [31:0] alu_operand_b, alu_operand_c;
     logic [5:0]  alu_flags;
+    logic        illegal_op;
+    logic        current_auth;
+
+    assign current_auth = status_flags[4]; // AUTH flag from status register
 
     // --- Register File ---
     register_file rf (
@@ -40,7 +44,7 @@ module datapath (
         .rs2_addr(rs2_addr),
         .rs3_addr(rs3_addr),
         .rd_addr(rd_addr),
-        .write_data(alu_result), // Placeholder: in real CPU, data might come from mem or ALU
+        .write_data(alu_result), 
         .rs1_data(rs1_data),
         .rs2_data(rs2_data),
         .rs3_data(rs3_data)
@@ -48,7 +52,7 @@ module datapath (
 
     // Operand selection MUXes
     assign alu_operand_b = alu_src_b ? immediate : rs2_data;
-    assign alu_operand_c = rs3_data; // Simple connection for now
+    assign alu_operand_c = rs3_data; 
 
     // --- ALU ---
     alu main_alu (
@@ -56,20 +60,22 @@ module datapath (
         .b(alu_operand_b),
         .c(alu_operand_c),
         .alu_op(alu_op),
+        .auth_in(current_auth),
         .result(alu_result),
-        .flags(alu_flags)
+        .flags(alu_flags),
+        .illegal_op(illegal_op)
     );
 
     // --- Status Register ---
     status_reg sr (
         .clk(clk),
         .reset(reset),
-        .we(1'b1), // Update on every cycle for now (simplification)
+        .we(1'b1), // Update arithmetic flags
         .alu_flags(alu_flags),
         .auth_in(1'b0), // From Security Unit (external)
-        .exc_in(1'b0),  // From Security Unit (external)
+        .exc_in(illegal_op),  // Trigger exception if op is illegal
         .set_auth(1'b0),
-        .set_exc(1'b0),
+        .set_exc(illegal_op),
         .current_flags(status_flags)
     );
 

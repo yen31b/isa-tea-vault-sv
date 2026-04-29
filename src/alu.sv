@@ -5,8 +5,10 @@ module alu (
     input  logic [31:0] b,
     input  logic [31:0] c,      
     input  logic [3:0]  alu_op, 
+    input  logic        auth_in,    // Authentication bit from status register
     output logic [31:0] result,
-    output logic [5:0]  flags   
+    output logic [5:0]  flags,
+    output logic        illegal_op  // High if a privileged op is attempted without AUTH
 );
 
     logic z, n, carry, v;
@@ -20,6 +22,7 @@ module alu (
         result = 32'b0;
         carry = 1'b0;
         v = 1'b0; 
+        illegal_op = 1'b0;
 
         case (alu_op)
             4'b0000: begin // ADD
@@ -37,8 +40,22 @@ module alu (
             4'b0110: result = a << b[4:0];
             4'b1000: result = a * b;
             4'b1001: result = a;    
-            4'b1010: result = a ^ b ^ c;
-            4'b1011: result = a + 1;
+            4'b1010: begin // XORTEA (Privileged)
+                if (auth_in) begin
+                    result = a ^ b ^ c;
+                end else begin
+                    result = 32'b0;
+                    illegal_op = 1'b1;
+                end
+            end
+            4'b1011: begin // BEQADD logic (Privileged)
+                if (auth_in) begin
+                    result = a + 1;
+                end else begin
+                    result = 32'b0;
+                    illegal_op = 1'b1;
+                end
+            end
             default: result = 32'b0;
         endcase
     end

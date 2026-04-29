@@ -27,16 +27,22 @@ module tb_datapath;
         immediate = 0; mem_data_in = 0;
         #15 reset = 0;
         
-        @(posedge clk); #1; // Wait for write to complete
-        // 1. Write 10 to r1: r1 = r0 + 10
+        @(posedge clk); #1;
+        // 1. Attempt privileged XORTEA without AUTH (Should trigger EXC)
+        alu_op = 4'b1010; rs1_addr = 3'd1; rs2_addr = 3'd2; rs3_addr = 3'd3; reg_write = 0;
+        
+        @(posedge clk); #1;
+        $display("After unauthorized XORTEA - Flags: %b (Expected bit 5 to be 1)", status_flags);
+        
+        // 2. Normal ADD: r1 = r0 + 10
         reg_write = 1; rd_addr = 3'd1; rs1_addr = 3'd0; immediate = 32'd10; alu_op = 4'b0000; alu_src_b = 1; 
         
         @(posedge clk); #1;
-        // 2. Write 20 to r2: r2 = r0 + 20
+        // 3. Normal ADD: r2 = r0 + 20
         rd_addr = 3'd2; immediate = 32'd20; 
         
         @(posedge clk); #1;
-        // 3. ADD r1 + r2 -> r3
+        // 4. ADD r1 + r2 -> r3
         rd_addr = 3'd3; rs1_addr = 3'd1; rs2_addr = 3'd2; alu_op = 4'b0000; alu_src_b = 0; 
         
         @(posedge clk); #1;
