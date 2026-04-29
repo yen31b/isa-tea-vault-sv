@@ -42,7 +42,7 @@ BIN_TOP   = sim_top
 # all: setup tb_dmem tb_vault tb_alu tb_tea tb_integration tb_top
 # ============================================================
 .PHONY: all
-all: setup tb_dmem tb_vault tb_integration
+all: setup tb_dmem tb_vault tb_integration tb_tea
 
 # ============================================================
 # SETUP — crear directorios necesarios
@@ -152,6 +152,10 @@ wave_vault:
 .PHONY: wave_int
 wave_int:
 	$(WAVE) $(VCD)/tb_integration_cpu_vault.vcd &
+
+.PHONY: wave_tea
+wave_tea:
+	$(WAVE) $(VCD)/tb_tea.vcd &
 
 .PHONY: wave_top
 wave_top:
