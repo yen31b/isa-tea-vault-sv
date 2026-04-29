@@ -65,49 +65,49 @@ module tb_key_vault;
         slot = 0; word = 0; rs1_data = 0;
         @(posedge clk); #1; rst = 0;
 
-        $display("\n=== tb_key_vault: Iniciando pruebas ===\n");
+        $display("\n\033[36m=== tb_key_vault: Iniciando pruebas ===\033[0m\n");
 
         // TEST 1: VSTR con auth=1 → debe escribir en bóveda
         
-        $display("--- TEST 1: VSTR autenticado ---");
+        $display("\033[36m--- TEST 1: VSTR autenticado ---\033[0m");
         auth_status = 1;
         slot = 3'd0; word = 3'd0; rs1_data = 32'hA1B2C3D4;
         pulso(0);  // vault_write
 
         // Verificar que el dato quedó en vault[0][0]
         if (dut.vault[0][0] === 32'hA1B2C3D4)
-            $display("  PASS vault[0][0]=0x%08h", dut.vault[0][0]);
+            $display("\033[32m  PASS\033[0m vault[0][0]=0x%08h", dut.vault[0][0]);
         else
-            $error("  FAIL vault[0][0]=0x%08h (esperado 0xA1B2C3D4)", dut.vault[0][0]);
+            $display("\033[31m  FAIL\033[0m vault[0][0]=0x%08h (esperado 0xA1B2C3D4)", dut.vault[0][0]);
 
         if (exc_out === 1'b0)
-            $display("  PASS exc_out=0 (sin excepción)");
+            $display("\033[32m  PASS\033[0m exc_out=0 (sin excepción)");
         else
-            $error("  FAIL exc_out=1 (no debería haber excepción)");
+            $display("\033[31m  FAIL\033[0m exc_out=1 (no debería haber excepción)");
 
         
         // TEST 2: VSTR sin auth → debe generar excepción
         
-        $display("\n--- TEST 2: VSTR sin autenticación ---");
+        $display("\n\033[36m--- TEST 2: VSTR sin autenticación ---\033[0m");
         auth_status = 0;
         slot = 3'd1; word = 3'd0; rs1_data = 32'hDEADBEEF;
         pulso(0);  // vault_write
 
         if (exc_out === 1'b1)
-            $display("  PASS exc_out=1 (excepción generada correctamente)");
+            $display("\033[32m  PASS\033[0m exc_out=1 (excepción generada correctamente)");
         else
-            $error("  FAIL exc_out=0 (debería haber excepción)");
+            $display("\033[31m  FAIL\033[0m exc_out=0 (debería haber excepción)");
 
         // Verificar que la bóveda NO fue modificada
         if (dut.vault[1][0] === 32'h0)
-            $display("  PASS vault[1][0] sigue en 0 (no modificado)");
+            $display("\033[32m  PASS\033[0m vault[1][0] sigue en 0 (no modificado)");
         else
-            $error("  FAIL vault[1][0]=0x%08h (fue modificado sin auth)", dut.vault[1][0]);
+            $display("\033[31m  FAIL\033[0m vault[1][0]=0x%08h (fue modificado sin auth)", dut.vault[1][0]);
 
         
         // TEST 3: VLD con auth=1 → k_reg debe cargarse
         
-        $display("\n--- TEST 3: VLD autenticado ---");
+        $display("\n\033[36m--- TEST 3: VLD autenticado ---\033[0m");
         auth_status = 1;
         // Primero escribir algo en vault[0][1]
         slot = 3'd0; word = 3'd1; rs1_data = 32'hE5F60718;
@@ -117,33 +117,33 @@ module tb_key_vault;
         pulso(1);  // vault_load_secure
 
         if (k_reg[1] === 32'hE5F60718)
-            $display("  PASS k_reg[1]=0x%08h (cargado correctamente)", k_reg[1]);
+            $display("\033[32m  PASS\033[0m k_reg[1]=0x%08h (cargado correctamente)", k_reg[1]);
         else
-            $error("  FAIL k_reg[1]=0x%08h (esperado 0xE5F60718)", k_reg[1]);
+            $display("\033[31m  FAIL\033[0m k_reg[1]=0x%08h (esperado 0xE5F60718)", k_reg[1]);
 
         
         // TEST 4: VLD sin auth → excepción, k_reg no cambia
         
-        $display("\n--- TEST 4: VLD sin autenticación ---");
+        $display("\n\033[36m--- TEST 4: VLD sin autenticación ---\033[0m");
         auth_status = 0;
         slot = 3'd0; word = 3'd0;
         pulso(1);  // vault_load_secure
 
         if (exc_out === 1'b1)
-            $display("  PASS exc_out=1 (excepción correcta)");
+            $display("\033[32m  PASS\033[0m exc_out=1 (excepción correcta)");
         else
-            $error("  FAIL exc_out=0 (debería haber excepción)");
+            $display("\033[31m  FAIL\033[0m exc_out=0 (debería haber excepción)");
 
         // k_reg[0] no debería haber cambiado (sigue en 0 del reset)
         if (k_reg[0] === 32'h0)
-            $display("  PASS k_reg[0] no modificado (sigue en 0)");
+            $display("\033[32m  PASS\033[0m k_reg[0] no modificado (sigue en 0)");
         else
-            $error("  FAIL k_reg[0]=0x%08h (fue modificado sin auth)", k_reg[0]);
+            $display("\033[31m  FAIL\033[0m k_reg[0]=0x%08h (fue modificado sin auth)", k_reg[0]);
 
         
         // TEST 5: VCLR con auth=1 → slot borrado
         
-        $display("\n--- TEST 5: VCLR autenticado ---");
+        $display("\n\033[36m--- TEST 5: VCLR autenticado ---\033[0m");
         auth_status = 1;
         // Escribir las 4 palabras del slot 0
         slot = 3'd0;
@@ -157,14 +157,14 @@ module tb_key_vault;
 
         if (dut.vault[0][0] === 32'h0 && dut.vault[0][1] === 32'h0 &&
             dut.vault[0][2] === 32'h0 && dut.vault[0][3] === 32'h0)
-            $display("  PASS slot 0 borrado completamente");
+            $display("\033[32m  PASS\033[0m slot 0 borrado completamente");
         else
-            $error("  FAIL slot 0 no fue borrado correctamente");
+            $display("\033[31m  FAIL\033[0m slot 0 no fue borrado correctamente");
 
         
         // TEST 6: VCLR sin auth → excepción
         
-        $display("\n--- TEST 6: VCLR sin autenticación ---");
+        $display("\n\033[36m--- TEST 6: VCLR sin autenticación ---\033[0m");
         // Primero escribir en slot 2 con auth
         auth_status = 1;
         slot = 3'd2; word = 3'd0; rs1_data = 32'h11223344;
@@ -175,19 +175,19 @@ module tb_key_vault;
         pulso(2);  // vault_clear
 
         if (exc_out === 1'b1)
-            $display("  PASS exc_out=1 (excepción correcta)");
+            $display("\033[32m  PASS\033[0m exc_out=1 (excepción correcta)");
         else
-            $error("  FAIL exc_out=0 (debería haber excepción)");
+            $display("\033[31m  FAIL\033[0m exc_out=0 (debería haber excepción)");
 
         if (dut.vault[2][0] === 32'h11223344)
-            $display("  PASS vault[2][0] no fue borrado");
+            $display("\033[32m  PASS\033[0m vault[2][0] no fue borrado");
         else
-            $error("  FAIL vault[2][0] fue borrado sin auth");
+            $display("\033[31m  FAIL\033[0m vault[2][0] fue borrado sin auth");
 
         
         // TEST 7: Llave completa de 128 bits en slot 1
         
-        $display("\n--- TEST 7: Llave 128 bits completa ---");
+        $display("\n\033[36m--- TEST 7: Llave 128 bits completa ---\033[0m");
         auth_status = 1;
         slot = 3'd1;
         // Escribir 4 palabras
@@ -205,15 +205,15 @@ module tb_key_vault;
 
         if (k_reg[0]===32'hA1B2C3D4 && k_reg[1]===32'hE5F60718 &&
             k_reg[2]===32'h293A4B5C && k_reg[3]===32'h6D7E8F90)
-            $display("  PASS llave 128 bits cargada correctamente en k_reg[0..3]");
+            $display("\033[32m  PASS\033[0m llave 128 bits cargada correctamente en k_reg[0..3]");
         else
-            $error("  FAIL k_reg=[%h, %h, %h, %h]",
+            $display("\033[31m  FAIL\033[0m k_reg=[%h, %h, %h, %h]",
                    k_reg[0], k_reg[1], k_reg[2], k_reg[3]);
 
         
         // TEST 8: Sin interferencia entre slots
         
-        $display("\n--- TEST 8: No interferencia entre slots ---");
+        $display("\n\033[36m--- TEST 8: No interferencia entre slots ---\033[0m");
         auth_status = 1;
         // Escribir en slot 3
         slot = 3'd3; word = 3'd0; rs1_data = 32'hBEEFCAFE;
@@ -221,11 +221,11 @@ module tb_key_vault;
 
         // Verificar que slot 1 sigue igual
         if (dut.vault[1][0] === 32'hA1B2C3D4)
-            $display("  PASS slot 1 no fue afectado por escritura en slot 3");
+            $display("\033[32m  PASS\033[0m slot 1 no fue afectado por escritura en slot 3");
         else
-            $error("  FAIL slot 1 fue alterado");
+            $display("\033[31m  FAIL\033[0m slot 1 fue alterado");
 
-        $display("\n=== tb_key_vault: Pruebas completadas ===\n");
+        $display("\n\033[36m=== tb_key_vault: Pruebas completadas ===\033[0m\n");
         $finish;
     end
 

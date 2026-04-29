@@ -169,9 +169,9 @@ module tb_integration_cpu_vault;
 
     task automatic check(input logic signal, input logic esperado, input string label);
         if (signal === esperado)
-            $display("    PASS %s = %b", label, signal);
+            $display("\033[32m    PASS\033[0m %s = %b", label, signal);
         else
-            $error("    FAIL %s = %b (esperado %b)", label, signal, esperado);
+            $display("\033[31m    FAIL\033[0m %s = %b (esperado %b)", label, signal, esperado);
     endtask
 
     // ==========================================================
@@ -213,16 +213,16 @@ module tb_integration_cpu_vault;
         rst = 0;
         @(posedge clk); #1;
 
-        $display("\n========================================");
-        $display("  Pruebas de integracion de CPU + VAULT");
-        $display("========================================\n");
+        $display("\n\033[36m========================================\033[0m");
+        $display("\033[36m  Pruebas de integracion de CPU + VAULT\033[0m");
+        $display("\033[36m========================================\033[0m\n");
 
         // --------------------------------------------------
         // TEST 1: ST — escribir en data_mem
         // ST r2, 0(r0) → opcode=ST, rd=r2(src), rs1=r0(base), imm=0
         // Formato M: [31:27]=00001 | [26:24]=010 | [23:21]=000 | [20:0]=0
         // --------------------------------------------------
-        $display("--- TEST 1: ST (mem_write) ---");
+        $display("\033[36m--- TEST 1: ST (mem_write) ---\033[0m");
         address    = 32'h00000010; // base + offset calculado por datapath stub
         write_data = 32'hDEADBEEF;
         ejecutar({OP_ST, 3'b010, 3'b000, 21'b0}, "ST");
@@ -238,14 +238,14 @@ module tb_integration_cpu_vault;
         // LD r1, 0(r0)
         // Formato M: [31:27]=00000 | [26:24]=001 | [23:21]=000 | [20:0]=0
         // --------------------------------------------------
-        $display("\n--- TEST 2: LD (mem_read) ---");
+        $display("\n\033[36m--- TEST 2: LD (mem_read) ---\033[0m");
         address = 32'h00000010; // misma addr que ST
         ejecutar({OP_LD, 3'b001, 3'b000, 21'b0}, "LD");
         check(mem_read,  1'b1, "mem_read");
         check(mem_write, 1'b0, "mem_write");
         #1;
         if (read_data === 32'hDEADBEEF)
-            $display("    PASS read_data=0x%08h (ST→LD correcto)", read_data);
+            $display("\033[32m    PASS\033[0m read_data=0x%08h (ST→LD correcto)", read_data);
         else
             $display("    INFO read_data=0x%08h (puede diferir si dmem no inicializó con ST previo)", read_data);
 
@@ -254,7 +254,7 @@ module tb_integration_cpu_vault;
         // VAUTH r1 → rs1_data debe tener el SECRET
         // Formato K: [31:27]=10001 | [26:24]=000 | [23:21]=000 | [20:18]=001(rs1)
         // --------------------------------------------------
-        $display("\n--- TEST 3: VAUTH password correcto ---");
+        $display("\n\033[36m--- TEST 3: VAUTH password correcto ---\033[0m");
         rs1_data = SECRET; // simula que r1 tiene el password
         ejecutar({OP_VAUTH, 3'b000, 3'b000, 3'b001, 18'b0}, "VAUTH OK");
         @(posedge clk); #1; // auth_unit es síncrono
@@ -265,7 +265,7 @@ module tb_integration_cpu_vault;
         // TEST 4: VAUTH con password incorrecto
         // Primero hacer logout, luego intentar con password malo
         // --------------------------------------------------
-        $display("\n--- TEST 4: VAUTH password incorrecto ---");
+        $display("\n\033[36m--- TEST 4: VAUTH password incorrecto ---\033[0m");
         ejecutar({OP_VLOGOUT, 3'b000, 3'b000, 3'b000, 18'b0}, "VLOGOUT");
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status tras VLOGOUT");
@@ -279,7 +279,7 @@ module tb_integration_cpu_vault;
         // --------------------------------------------------
         // TEST 5: VSTR sin auth → illegal_access + exc_out
         // --------------------------------------------------
-        $display("\n--- TEST 5: VSTR sin autenticacion (acceso no autorizado)---");
+        $display("\n\033[36m--- TEST 5: VSTR sin autenticacion (acceso no autorizado)---\033[0m");
         rs1_data = 32'hCAFEBABE;
         // VSTR slot=0, palabra=0, rs1=r1
         // Formato K: [31:27]=01110 | [26:24]=000(slot) | [23:21]=000(palabra) | [20:18]=001(rs1)
@@ -291,7 +291,7 @@ module tb_integration_cpu_vault;
         // --------------------------------------------------
         // TEST 6: VAUTH correcto → luego VSTR exitoso
         // --------------------------------------------------
-        $display("\n--- TEST 6: VSTR autenticado ---");
+        $display("\n\033[36m--- TEST 6: VSTR autenticado ---\033[0m");
         rs1_data = SECRET;
         ejecutar({OP_VAUTH, 3'b000, 3'b000, 3'b001, 18'b0}, "VAUTH OK");
         @(posedge clk); #1;
@@ -304,47 +304,47 @@ module tb_integration_cpu_vault;
         check(illegal_access, 1'b0, "illegal_access=0");
         check(exc_out,        1'b0, "exc_out=0");
         if (u_vault.vault[0][0] === 32'hA1B2C3D4)
-            $display("    [PASS] vault[0][0]=0x%08h guardado correctamente", u_vault.vault[0][0]);
+            $display("    \033[32m[PASS]\033[0m vault[0][0]=0x%08h guardado correctamente", u_vault.vault[0][0]);
         else
-            $error("    [FAIL] vault[0][0]=0x%08h (esperado 0xA1B2C3D4)", u_vault.vault[0][0]);
+            $display("    \033[31m[FAIL]\033[0m vault[0][0]=0x%08h (esperado 0xA1B2C3D4)", u_vault.vault[0][0]);
 
         // --------------------------------------------------
         // TEST 7: VLD — cargar palabra de vault a k_reg
         // --------------------------------------------------
-        $display("\n--- TEST 7: VLD autenticado ---");
+        $display("\n\033[36m--- TEST 7: VLD autenticado ---\033[0m");
         // VLD slot=0, palabra=0 → k_reg[0]
         // Formato K: [31:27]=01111 | [26:24]=000(slot) | [23:21]=000(palabra) | [20:18]=000
         ejecutar({OP_VLD, 3'b000, 3'b000, 3'b000, 18'b0}, "VLD");
         @(posedge clk); #1;
         check(vault_load_secure, 1'b1, "vault_load_secure");
         if (k_reg[0] === 32'hA1B2C3D4)
-            $display("    [PASS] k_reg[0]=0x%08h (llave cargada para TEA)", k_reg[0]);
+            $display("    \033[32m[PASS]\033[0m k_reg[0]=0x%08h (llave cargada para TEA)", k_reg[0]);
         else
-            $error("    [FAIL] k_reg[0]=0x%08h (esperado 0xA1B2C3D4)", k_reg[0]);
+            $display("    \033[31m[FAIL]\033[0m k_reg[0]=0x%08h (esperado 0xA1B2C3D4)", k_reg[0]);
 
         // --------------------------------------------------
         // TEST 8: VCLR — borrar slot
         // --------------------------------------------------
-        $display("\n--- TEST 8: VCLR autenticado ---");
+        $display("\n\033[36m--- TEST 8: VCLR autenticado ---\033[0m");
         ejecutar({OP_VCLR, 3'b000, 3'b000, 3'b000, 18'b0}, "VCLR");
         @(posedge clk); #1;
         check(vault_clear, 1'b1, "vault_clear");
         if (u_vault.vault[0][0] === 32'h0)
-            $display("    [PASS] vault[0][0] borrado correctamente");
+            $display("    \033[32m[PASS]\033[0m vault[0][0] borrado correctamente");
         else
-            $error("    [FAIL] vault[0][0]=0x%08h (debería ser 0)", u_vault.vault[0][0]);
+            $display("    \033[31m[FAIL]\033[0m vault[0][0]=0x%08h (debería ser 0)", u_vault.vault[0][0]);
 
         // --------------------------------------------------
         // TEST 9: VLOGOUT — cerrar sesión
         // --------------------------------------------------
-        $display("\n--- TEST 9: VLOGOUT ---");
+        $display("\n\033[36m--- TEST 9: VLOGOUT ---\033[0m");
         ejecutar({OP_VLOGOUT, 3'b000, 3'b000, 3'b000, 18'b0}, "VLOGOUT");
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status=0 tras logout");
 
-        $display("\n================================================================");
-        $display("  Integracion de CPU + Vault completa y correctamente funcionando");
-        $display("================================================================\n");
+        $display("\n\033[32m================================================================\033[0m");
+        $display("\033[32m  Integracion de CPU + Vault completa y correctamente funcionando\033[0m");
+        $display("\033[32m================================================================\033[0m\n");
         $finish;
     end
 

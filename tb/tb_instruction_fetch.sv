@@ -46,19 +46,19 @@ module tb_instruction_fetch;
             #1; //espera 1 ns antes de revisar
 
             if (pc !== expected_pc) begin
-                $display("[ERROR] %s: PC esperado=0x%08h, obtenido=0x%08h", // Si el PC actual no es igual al PC esperado,
+                $display("\033[31m[ERROR]\033[0m %s: PC esperado=0x%08h, obtenido=0x%08h", // Si el PC actual no es igual al PC esperado,
                          name, expected_pc, pc);                            // imprime error y aumenta el contador de errores.
                 errors++;
             end
 
             if (instruction !== expected_instruction) begin
-                $display("[ERROR] %s: instruccion esperada=0x%08h, obtenida=0x%08h", // Si la instrucción actual no coincide con la esperada,
+                $display("\033[31m[ERROR]\033[0m %s: instruccion esperada=0x%08h, obtenida=0x%08h", // Si la instrucción actual no coincide con la esperada,
                          name, expected_instruction, instruction);                  // imprime error y aumenta errors.
                 errors++;
             end
 
             if ((pc === expected_pc) && (instruction === expected_instruction)) begin
-                $display("[OK] %s: PC=0x%08h instruction=0x%08h", //Este mensaje confirma que tanto el pc como la instrucción fueron correctos.
+                $display("\033[32m[OK]\033[0m %s: PC=0x%08h instruction=0x%08h", //Este mensaje confirma que tanto el pc como la instrucción fueron correctos.
                          name, pc, instruction);
             end
         end
@@ -77,7 +77,7 @@ module tb_instruction_fetch;
         branch_target = 32'd0;
         jump_target = 32'd0;
 
-        $display("Iniciando pruebas de instruction_fetch...");
+        $display("\033[36mIniciando pruebas de instruction_fetch...\033[0m");
 
         // -----------------------------
         // TEST 1: Reset
@@ -178,10 +178,10 @@ module tb_instruction_fetch;
         // Resultado final
         // -----------------------------
         if (errors == 0) begin
-            $display("TODAS LAS PRUEBAS DE FETCH PASARON.");
+            $display("\033[32mTODAS LAS PRUEBAS DE FETCH PASARON.\033[0m");
         end
         else begin
-            $display("PRUEBAS FALLIDAS. Total de errores: %0d", errors);
+            $display("\033[31mPRUEBAS FALLIDAS. Total de errores: %0d\033[0m", errors);
         end
 
         $finish;

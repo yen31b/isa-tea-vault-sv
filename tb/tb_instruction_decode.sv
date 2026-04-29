@@ -131,57 +131,57 @@ module tb_instruction_decode;
             #1; // Espera para que always_comb actualice las salidas
 
             if (opcode !== exp_opcode) begin //Si el opcode real no es igual al esperado, imprime error y suma 1 al contador de errores.
-                $display("[ERROR] %s opcode esperado=%b obtenido=%b", name, exp_opcode, opcode);
+                $display("\033[31m[ERROR]\033[0m %s opcode esperado=%b obtenido=%b", name, exp_opcode, opcode);
                 errors++;
             end
 
             if (rd !== exp_rd) begin
-                $display("[ERROR] %s rd esperado=%b obtenido=%b", name, exp_rd, rd);
+                $display("\033[31m[ERROR]\033[0m %s rd esperado=%b obtenido=%b", name, exp_rd, rd);
                 errors++;
             end
 
             if (rs1 !== exp_rs1) begin
-                $display("[ERROR] %s rs1 esperado=%b obtenido=%b", name, exp_rs1, rs1);
+                $display("\033[31m[ERROR]\033[0m %s rs1 esperado=%b obtenido=%b", name, exp_rs1, rs1);
                 errors++;
             end
 
             if (rs2 !== exp_rs2) begin
-                $display("[ERROR] %s rs2 esperado=%b obtenido=%b", name, exp_rs2, rs2);
+                $display("\033[31m[ERROR]\033[0m %s rs2 esperado=%b obtenido=%b", name, exp_rs2, rs2);
                 errors++;
             end
 
             if (rs3 !== exp_rs3) begin
-                $display("[ERROR] %s rs3 esperado=%b obtenido=%b", name, exp_rs3, rs3);
+                $display("\033[31m[ERROR]\033[0m %s rs3 esperado=%b obtenido=%b", name, exp_rs3, rs3);
                 errors++;
             end
 
             if (imm !== exp_imm) begin
-                $display("[ERROR] %s imm esperado=%b obtenido=%b", name, exp_imm, imm);
+                $display("\033[31m[ERROR]\033[0m %s imm esperado=%b obtenido=%b", name, exp_imm, imm);
                 errors++;
             end
 
             if (format_type !== exp_format_type) begin
-                $display("[ERROR] %s format_type esperado=%b obtenido=%b", name, exp_format_type, format_type);
+                $display("\033[31m[ERROR]\033[0m %s format_type esperado=%b obtenido=%b", name, exp_format_type, format_type);
                 errors++;
             end
 
             if (slot !== exp_slot) begin
-                $display("[ERROR] %s slot esperado=%b obtenido=%b", name, exp_slot, slot);
+                $display("\033[31m[ERROR]\033[0m %s slot esperado=%b obtenido=%b", name, exp_slot, slot);
                 errors++;
             end
 
             if (palabra !== exp_palabra) begin
-                $display("[ERROR] %s palabra esperado=%b obtenido=%b", name, exp_palabra, palabra);
+                $display("\033[31m[ERROR]\033[0m %s palabra esperado=%b obtenido=%b", name, exp_palabra, palabra);
                 errors++;
             end
 
             if (reservado !== exp_reservado) begin
-                $display("[ERROR] %s reservado esperado=%b obtenido=%b", name, exp_reservado, reservado);
+                $display("\033[31m[ERROR]\033[0m %s reservado esperado=%b obtenido=%b", name, exp_reservado, reservado);
                 errors++;
             end
 
             if (errors == before_errors) begin
-                $display("[OK] %s instr=0x%08h", name, instr_i);
+                $display("\033[32m[OK]\033[0m %s instr=0x%08h", name, instr_i);
             end
         end
     endtask
@@ -190,7 +190,7 @@ module tb_instruction_decode;
         $dumpfile("instruction_decode.vcd"); //Primero  se genera el archivo para GTKWave:
         $dumpvars(0, tb_instruction_decode);
 
-        $display("Iniciando pruebas de instruction_decode...");
+        $display("\033[36mIniciando pruebas de instruction_decode...\033[0m");
 
         // Formato R: ADD opcode=00100, rd=3, rs1=1, rs2=2
         check_decode(
@@ -265,9 +265,9 @@ module tb_instruction_decode;
         );
 
         if (errors == 0) begin
-            $display("TODAS LAS PRUEBAS PASARON.");
+            $display("\033[32mTODAS LAS PRUEBAS PASARON.\033[0m");
         end else begin
-            $display("PRUEBAS FALLIDAS. Total de errores: %0d", errors);
+            $display("\033[31mPRUEBAS FALLIDAS. Total de errores: %0d\033[0m", errors);
         end
 
         $finish;

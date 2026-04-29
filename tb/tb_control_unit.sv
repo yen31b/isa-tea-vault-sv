@@ -235,7 +235,7 @@ module tb_control_unit;
             actual_outputs = get_outputs(); //Luego se obtienen las salidas reales:
 
             if (actual_outputs !== expected_outputs) begin  //Si las salidas reales son iguales a las esperadas, imprime [OK].
-                $display("[ERROR] %s", name); 
+                $display("\033[31m[ERROR]\033[0m %s", name); 
                 $display("    opcode=%b zero_flag=%b auth_status=%b", op_i, zero_i, auth_i);
                 $display("    esperado=%b", expected_outputs);
                 $display("    obtenido=%b", actual_outputs);
@@ -243,7 +243,7 @@ module tb_control_unit;
                 errors++;
             end
             else begin //Si no, imprime [ERROR] y suma un error.
-                $display("[OK] %s opcode=%b zero=%b auth=%b", name, op_i, zero_i, auth_i);
+                $display("\033[32m[OK]\033[0m %s opcode=%b zero=%b auth=%b", name, op_i, zero_i, auth_i);
             end
         end
     endtask
@@ -254,7 +254,7 @@ module tb_control_unit;
 
         errors = 0; //inicializa errores:
 
-        $display("Iniciando pruebas de control_unit..."); //Empieza a llamar pruebas con check_control.
+        $display("\033[36mIniciando pruebas de control_unit...\033[0m"); //Empieza a llamar pruebas con check_control.
 
         // Orden del vector esperado:
         // reg_write, mem_read, mem_write, mem_to_reg, use_imm,
@@ -633,10 +633,10 @@ module tb_control_unit;
         );
 
         if (errors == 0) begin
-            $display("TODAS LAS PRUEBAS DE CONTROL_UNIT PASARON."); //Si salio correcto, la terminal muestra el mensaje.
+            $display("\033[32mTODAS LAS PRUEBAS DE CONTROL_UNIT PASARON.\033[0m"); //Si salio correcto, la terminal muestra el mensaje.
         end
         else begin
-            $display("PRUEBAS FALLIDAS. Total de errores: %0d", errors); //Si no entonces hay prueba fallida. 
+            $display("\033[31mPRUEBAS FALLIDAS. Total de errores: %0d\033[0m", errors); //Si no entonces hay prueba fallida. 
         end
 
         $finish;
