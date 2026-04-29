@@ -21,7 +21,7 @@ module instruction_decode (
 	localparam FORMAT_K = 3'b100;
 	localparam FORMAT_T = 3'b101;
 	
-always_comb begin
+always @(*) begin
 
     //Se define bits para los operandos y el opcode
 

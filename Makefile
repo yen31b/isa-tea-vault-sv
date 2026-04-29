@@ -1,8 +1,5 @@
-# ============================================================
 # Makefile — ISA RISC Seguridad Informática
-# Grupo 4: P1 + P2 + P3 + P4
-#
-# Uso:
+# Comandos de uso:
 #   make all            → compila y corre todos los testbenches disponibles
 #   make tb_dmem        → solo data_mem
 #   make tb_vault       → solo key_vault
@@ -14,7 +11,6 @@
 #   make wave_vault     → abre GTKWave para key_vault
 #   make wave_int       → abre GTKWave para integración
 #   make clean          → elimina binarios y .vcd
-# ============================================================
 
 # ---- Herramientas ----
 IV    = iverilog
