@@ -12,12 +12,25 @@ module alu (
 );
 
     logic z, n, carry, v;
-    // Extraemos los bits de signo fuera para evitar la advertencia de Icarus
+    // Sign bits for overflow/flag calculation
     logic a_sign, b_sign, res_sign;
     assign a_sign = a[31];
     assign b_sign = b[31];
     assign res_sign = result[31];
     
+    // ALU Operation Codes
+    localparam ALU_ADD    = 4'd0;
+    localparam ALU_SUB    = 4'd1;
+    localparam ALU_OR     = 4'd2;
+    localparam ALU_XOR    = 4'd3;
+    localparam ALU_SRL    = 4'd4;
+    localparam ALU_SLL    = 4'd5;
+    localparam ALU_MUL    = 4'd6;
+    localparam ALU_MOV    = 4'd7;
+    localparam ALU_AND    = 4'd8;
+    localparam ALU_XORTEA = 4'd10;
+    localparam ALU_BEQADD = 4'd11;
+
     always_comb begin
         result = 32'b0;
         carry = 1'b0;
@@ -25,22 +38,22 @@ module alu (
         illegal_op = 1'b0;
 
         case (alu_op)
-            4'b0000: begin // ADD
+            ALU_ADD: begin 
                 {carry, result} = a + b;
                 v = (a_sign == b_sign) && (res_sign != a_sign);
             end
-            4'b0001: begin // SUB / CMP
+            ALU_SUB: begin 
                 {carry, result} = a - b;
                 v = (a_sign != b_sign) && (res_sign != a_sign);
             end
-            4'b0010: result = a & b;
-            4'b0011: result = a | b;
-            4'b0100: result = a ^ b;
-            4'b0101: result = a >> b[4:0];
-            4'b0110: result = a << b[4:0];
-            4'b1000: result = a * b;
-            4'b1001: result = a;    
-            4'b1010: begin // XORTEA (Privileged)
+            ALU_OR:     result = a | b;
+            ALU_XOR:    result = a ^ b;
+            ALU_SRL:    result = a >> b[4:0];
+            ALU_SLL:    result = a << b[4:0];
+            ALU_MUL:    result = a * b;
+            ALU_MOV:    result = a;
+            ALU_AND:    result = a & b;
+            ALU_XORTEA: begin // XORTEA (Privileged)
                 if (auth_in) begin
                     result = a ^ b ^ c;
                 end else begin
@@ -48,9 +61,9 @@ module alu (
                     illegal_op = 1'b1;
                 end
             end
-            4'b1011: begin // BEQADD logic (Privileged)
+            ALU_BEQADD: begin // BEQADD logic (Privileged)
                 if (auth_in) begin
-                    result = a + 1;
+                    result = c + 1;
                 end else begin
                     result = 32'b0;
                     illegal_op = 1'b1;
