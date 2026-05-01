@@ -61,7 +61,7 @@ module control_unit (
     // -----------------------------
     // ALU OPERATIONS
     // -----------------------------
-    localparam ALU_ADD = 4'd0; //Define el código interno que se le manda a la ALU para hacer suma.
+    localparam ALU_ADD = 4'd0;
     localparam ALU_SUB = 4'd1;
     localparam ALU_OR  = 4'd2;
     localparam ALU_XOR = 4'd3;
@@ -70,6 +70,8 @@ module control_unit (
     localparam ALU_MUL = 4'd6;
     localparam ALU_MOV = 4'd7;
     localparam ALU_AND = 4'd8;
+    localparam ALU_XORTEA = 4'd10; // XOR de 3 operandos (rd = rs1 ^ rs2 ^ rs3)
+    localparam ALU_BEQADD = 4'd11; // Branch + incremento de índice
 
     always_comb begin
 
@@ -110,13 +112,13 @@ module control_unit (
                 mem_read   = 1'b1;
                 mem_to_reg = 1'b1;
                 reg_write  = 1'b1;
-                use_imm    = 1'b0;
+                use_imm    = 1'b1;
                 alu_op     = ALU_ADD; // base + offset
             end
 
             OP_ST: begin
                 mem_write = 1'b1;
-                use_imm   = 1'b0;
+                use_imm   = 1'b1;
                 alu_op    = ALU_ADD; // base + offset
             end
 
@@ -178,6 +180,7 @@ module control_unit (
 
             OP_MOV: begin
                 reg_write = 1'b1;
+                use_imm   = 1'b1;
                 alu_op    = ALU_MOV;
             end
 
@@ -249,12 +252,12 @@ module control_unit (
                 if (auth_status) begin
                     tea_enable = 1'b1;
                     reg_write  = 1'b1;
+                    alu_op     = ALU_XORTEA; // rd = rs1 ^ rs2 ^ rs3
                 end
                 else begin
                     illegal_access = 1'b1;
                 end
             end
-
             // -----------------------------
             //  OPERACIONES DE DESPLAZAMIENTOS CON INMEDIATO
             // -----------------------------

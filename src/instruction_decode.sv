@@ -1,11 +1,11 @@
 module instruction_decode (
 	input logic [31:0] instruction,  //Tamaño de las instrucciones (32 bits)
 	
-	output logic [4:0] opcode, // tamaño del op (5 bits) 
-	output logic [2:0] rd, 
-	output logic [2:0] rs1,
-	output logic [2:0] rs2,
-	output logic [2:0] rs3,
+	output logic [4:0] opcode, // tamaño del op (5 bits)
+	output logic [4:0] rd,     // 5 bits — compatible con register_file de 32 entradas
+	output logic [4:0] rs1,
+	output logic [4:0] rs2,
+	output logic [4:0] rs3,
 	output logic [20:0] imm,
 	output logic [2:0] format_type, // Bits para el tipo de formato de instruccion
 	output logic [2:0] slot,
@@ -28,10 +28,10 @@ always @(*) begin
 
 		opcode = instruction[31:27];
 		
-		rd  = 3'b000;
-		rs1 = 3'b000;
-		rs2 = 3'b000;
-		rs3 = 3'b000;
+		rd  = 5'b00000;
+		rs1 = 5'b00000;
+		rs2 = 5'b00000;
+		rs3 = 5'b00000;
 		imm = 21'b0;
 		slot = 3'b000;
 		palabra = 3'b000;
@@ -58,18 +58,24 @@ always @(*) begin
             5'b01001, // SLL
             5'b01011, // MUL
 				5'b01010, // CMP
-            5'b01100, // MOV
             5'b01101: begin // AND
 				
 					  
 					  format_type = FORMAT_R;
 					  
-					  rd = instruction[26:24];
-					  rs1 = instruction[23:21];
-					  rs2 = instruction[20:18];
+rd  = {2'b00, instruction[26:24]};
+				  rs1 = {2'b00, instruction[23:21]};
+				  rs2 = {2'b00, instruction[20:18]};
 
 					  
 	         end
+
+            5'b01100: begin // MOV (FORMAT_I: rd <- imm)
+                format_type = FORMAT_I;
+                rd  = {2'b00, instruction[26:24]};
+                rs1 = 5'd0;
+                imm = instruction[20:0];
+            end
 				
 				
 				
@@ -82,8 +88,8 @@ always @(*) begin
 
                 format_type = FORMAT_I;
 
-                rd  = instruction[26:24];
-                rs1 = instruction[23:21];
+                rd  = {2'b00, instruction[26:24]};
+                rs1 = {2'b00, instruction[23:21]};
                 imm = instruction[20:0];
             end
 				
@@ -97,8 +103,9 @@ always @(*) begin
 
                 format_type = FORMAT_M;
 
-                rd  = instruction[26:24]; //LD: rd destino / ST: Registro fuente a guardar rs2
-                rs1 = instruction[23:21];  // registro base
+               rd  = {2'b00, instruction[26:24]}; // LD: rd destino
+               rs2 = {2'b00, instruction[26:24]}; // ST: rs2 fuente a guardar
+                rs1 = {2'b00, instruction[23:21]};  // registro base
                 imm = instruction[20:0];   //offset
             end
 				
@@ -115,8 +122,8 @@ always @(*) begin
 
                 format_type = FORMAT_J;
 
-                rs1 = instruction[26:24];
-                rs2 = instruction[23:21];
+                rs1 = {2'b00, instruction[26:24]};
+                rs2 = {2'b00, instruction[23:21]};
                 imm = instruction[20:0];
             end
 				
@@ -138,7 +145,7 @@ always @(*) begin
 
                 slot  = instruction[26:24]; // k dest /slot 
                 palabra = instruction[23:21];
-                rs1 = instruction[20:18]; //Para VAUTH rs1 queda en bits [20:18]
+                rs1 = {2'b00, instruction[20:18]}; //Para VAUTH rs1 queda en bits [20:18]
 					 reservado = instruction[17:0];
             end
 				
@@ -151,10 +158,10 @@ always @(*) begin
 
                 format_type = FORMAT_T;
 
-                rd  = instruction[26:24];
-                rs1 = instruction[23:21];
-                rs2 = instruction[20:18];
-                rs3 = instruction[17:15];
+                rd  = {2'b00, instruction[26:24]};
+                rs1 = {2'b00, instruction[23:21]};
+                rs2 = {2'b00, instruction[20:18]};
+                rs3 = {2'b00, instruction[17:15]};
                 imm = {{6{instruction[14]}}, instruction[14:0]};// Extension con signo
             end
 				

@@ -1,2 +1,8 @@
 implementation_plan.md
 *.vvp
+*.vcd
+sim_ctrl
+_check_cu
+sim_integration
+sim_top
+*.log

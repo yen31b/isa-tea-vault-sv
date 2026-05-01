@@ -182,16 +182,16 @@ tb_tea: setup
 tb_top: setup
 	@echo "[tb_top] Compilando sistema completo..."
 	$(IV) $(FLAGS) -o $(BIN_TOP) \
-		$(SRC)/instruction_fetch.sv \
-		$(SRC)/instruction_decode.v \
-		$(SRC)/control_unit.sv \
-		$(SRC)/auth_unit.sv \
+		$(SRC)/status_reg.sv \
 		$(SRC)/alu.sv \
 		$(SRC)/register_file.sv \
 		$(SRC)/datapath.sv \
+		$(SRC)/instruction_fetch.sv \
+		$(SRC)/instruction_decode.sv \
+		$(SRC)/control_unit.sv \
+		$(SRC)/auth_unit.sv \
 		$(SRC)/data_mem.sv \
 		$(SRC)/key_vault.sv \
-		$(SRC)/tea_unit.sv \
 		$(SRC)/top.sv \
 		$(TB)/tb_top.sv
 	@echo "[tb_top] Simulando..."

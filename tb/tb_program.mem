@@ -1,15 +1,29 @@
-// Memoria de instrucciones
-// Cada línea representa una instrucción de 32 bits en hexadecimal.
+// Programa de prueba para top.sv (branch/jump/shift/compare)
+// 0: MOV r3, #19     ; r3 <- 19
+// 1: MOV r4, #2      ; r4 <- 2
+// 2: SLL r5, r3, r4  ; r5 <- 19 << 2 = 76
+// 3: SRL r6, r5, r4  ; r6 <- 76 >> 2 = 19
+// 4: CMP r6, r3      ; Z=1
+// 5: BEQ r6, r3, +8  ; salta a indice 7 (skip indice 6)
+// 6: MOV r0, #2      ; debe ser saltada por BEQ
+// 7: JMP +8          ; salta a indice 9 (skip indice 8)
+// 8: MOV r7, #19     ; debe ser saltada por JMP
+// 9: NOP
 
-23280000
-ac400019
-05c00064
-11e0002c
-880c0000
-7234000c
-a14e000a
-a14e7fff
-f8000000
+63000013
+64000002
+4D700000
+46B00000
+50CC0000
+16600008
+60000002
+18000008
+67000013
+00000000
+00000000
+00000000
+00000000
+00000000
 00000000
 00000000
 00000000
