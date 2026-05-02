@@ -57,6 +57,7 @@ module control_unit (
     localparam OP_XORTEA  = 5'b10100;
     localparam OP_SRLI    = 5'b10101;
     localparam OP_SLLI    = 5'b10110;
+    localparam OP_NOP     = 5'b11111;
 
     // -----------------------------
     // ALU OPERATIONS
@@ -273,6 +274,13 @@ module control_unit (
                 reg_write = 1'b1;
                 use_imm   = 1'b1;
                 alu_op    = ALU_SLL;
+            end
+
+            // -----------------------------
+            // NOP: no operation
+            // -----------------------------
+            OP_NOP: begin
+                // todas las señales quedan en 0 por los valores por defecto
             end
 
             // -----------------------------

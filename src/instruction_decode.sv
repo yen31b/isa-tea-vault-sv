@@ -165,7 +165,12 @@ rd  = {2'b00, instruction[26:24]};
                 imm = {{6{instruction[14]}}, instruction[14:0]};// Extension con signo
             end
 				
-				default: begin
+				5'b11111: begin // NOP
+					format_type = FORMAT_R;
+					// todos los campos quedan en 0 por los valores por defecto
+			 end
+
+			default: begin
 					format_type = FORMAT_R;
 	
 	         end

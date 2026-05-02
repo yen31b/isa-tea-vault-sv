@@ -14,7 +14,7 @@
 // 12: VAUTH r0               ; re-autenticar con password correcto -> auth_status=1
 // 13: VCLR slot=0            ; borrar slot 0 de boveda  (requiere auth)
 // 14: VLOGOUT                ; cerrar sesion -> auth_status=0
-// 15: NOP
+// 15: NOP                     ; sin efectos, opcode=11111 -> 0xF8000000
 
 6000A5A5
 64000010
@@ -31,4 +31,4 @@
 88000000
 80000000
 90000000
-00000000
+F8000000

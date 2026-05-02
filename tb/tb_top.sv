@@ -340,9 +340,17 @@ module tb_top;
                     check_vault_word("VCLR borra vault[0][0]", 0, 0, 32'h00000000);
                 end
 
-                // --- VLOGOUT final ---
+                // --- VLOGOUT final (NOP se esta fetcheando en este ciclo) ---
                 14: begin
                     check_auth("VLOGOUT final -> AUTH=0", 1'b0);
+                    if (illegal_access_out !== 1'b0) begin
+                        $display("[ERROR] NOP activo (pc=0x%08h): illegal_access inesperado=%0b",
+                                 pc_out, illegal_access_out);
+                        errors = errors + 1;
+                    end else begin
+                        $display("[ OK ] NOP fetcheado en pc=0x%08h: instr=0x%08h sin illegal_access",
+                                 pc_out, observed_instruction);
+                    end
                 end
 
                 default: begin end
