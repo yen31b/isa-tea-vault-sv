@@ -1,33 +1,34 @@
-// Programa de prueba para top.sv (branch/jump/shift/compare)
-// 0: MOV r3, #19     ; r3 <- 19
-// 1: MOV r4, #2      ; r4 <- 2
-// 2: SLL r5, r3, r4  ; r5 <- 19 << 2 = 76
-// 3: SRL r6, r5, r4  ; r6 <- 76 >> 2 = 19
-// 4: CMP r6, r3      ; Z=1
-// 5: BEQ r6, r3, +8  ; salta a indice 7 (skip indice 6)
-// 6: MOV r0, #2      ; debe ser saltada por BEQ
-// 7: JMP +8          ; salta a indice 9 (skip indice 8)
-// 8: MOV r7, #19     ; debe ser saltada por JMP
-// 9: NOP
+// Programa de prueba para autenticacion (VAUTH, VLOGOUT, VSTR, VLD, VCLR)
+//  0: MOV r0, #0xA5A5        ; r0 = 0x0000A5A5
+//  1: MOV r4, #16            ; r4 = 16  (shift amount)
+//  2: SLL r0, r0, r4         ; r0 = 0xA5A50000
+//  3: MOV r1, #0xA5A5        ; r1 = 0x0000A5A5
+//  4: OR  r0, r0, r1         ; r0 = 0xA5A5A5A5  (password correcto)
+//  5: VAUTH r0               ; autenticar con password correcto -> auth_status=1
+//  6: VSTR slot=0,word=0,r0  ; guardar r0 en vault[0][0] (requiere auth)
+//  7: VLD  slot=0,word=0     ; cargar vault[0][0] en k0  (requiere auth)
+//  8: VLOGOUT                ; cerrar sesion -> auth_status=0
+//  9: MOV r2, #0xDEAD        ; r2 = 0xDEAD  (password incorrecto)
+// 10: VAUTH r2               ; autenticar con password incorrecto -> auth_fail=1
+// 11: VSTR slot=0,word=0,r0  ; intento sin auth -> access_denied=1
+// 12: VAUTH r0               ; re-autenticar con password correcto -> auth_status=1
+// 13: VCLR slot=0            ; borrar slot 0 de boveda  (requiere auth)
+// 14: VLOGOUT                ; cerrar sesion -> auth_status=0
+// 15: NOP
 
-63000013
-64000002
-4D700000
-46B00000
-50CC0000
-16600008
-60000002
-18000008
-67000013
-00000000
-00000000
-00000000
-00000000
-00000000
-00000000
-00000000
-00000000
-00000000
-00000000
-00000000
+6000A5A5
+64000010
+48100000
+6100A5A5
+30040000
+88000000
+70000000
+78000000
+90000000
+6200DEAD
+88080000
+70000000
+88000000
+80000000
+90000000
 00000000

@@ -3,8 +3,8 @@
 module tb_top;
 
     localparam int INSTR_MEM_SIZE = 1024;
-    localparam int PROGRAM_WORDS   = 16;
-    localparam int TEST_CYCLES     = 13;
+    localparam int PROGRAM_WORDS   = 16;  // indices 0..15
+    localparam int TEST_CYCLES     = 15;  // ciclos 0..14 cubren instrucciones 0..14
 
     logic clk;
     logic reset;
@@ -19,7 +19,6 @@ module tb_top;
 
     logic [31:0] expected_instr [0:INSTR_MEM_SIZE-1];
     logic [31:0] observed_instruction;
-    logic [31:0] expected_sll;
 
     int errors;
     int cycle;
@@ -107,6 +106,60 @@ module tb_top;
         end
     endtask
 
+    task automatic check_vault_word(
+        input string tag,
+        input int slot_idx,
+        input int word_idx,
+        input logic [31:0] expected
+    );
+        logic [31:0] got;
+        begin
+            got = dut.vault_inst.vault[slot_idx][word_idx];
+            if (got !== expected) begin
+                $display("[ERROR] %s: VAULT[%0d][%0d] esperado=0x%08h obtenido=0x%08h",
+                         tag, slot_idx, word_idx, expected, got);
+                errors = errors + 1;
+            end else begin
+                $display("[ OK ] %s: VAULT[%0d][%0d]=0x%08h", tag, slot_idx, word_idx, got);
+            end
+        end
+    endtask
+
+    task automatic check_kreg(
+        input string tag,
+        input int idx_k,
+        input logic [31:0] expected
+    );
+        logic [31:0] got;
+        begin
+            got = dut.k_reg[idx_k];
+            if (got !== expected) begin
+                $display("[ERROR] %s: k_reg[%0d] esperado=0x%08h obtenido=0x%08h",
+                         tag, idx_k, expected, got);
+                errors = errors + 1;
+            end else begin
+                $display("[ OK ] %s: k_reg[%0d]=0x%08h", tag, idx_k, got);
+            end
+        end
+    endtask
+
+    task automatic log_vault_trace(
+        input string tag,
+        input int slot_idx,
+        input int word_idx,
+        input logic [31:0] src_value
+    );
+        logic [31:0] vault_word;
+        logic [31:0] k0_word;
+        begin
+            vault_word = dut.vault_inst.vault[slot_idx][word_idx];
+            k0_word    = dut.k_reg[word_idx];
+            $display("[TRACE] %s: slot=%0d word=%0d rs1=0x%08h vault=0x%08h k_reg[%0d]=0x%08h auth=%0b denied=%0b",
+                     tag, slot_idx, word_idx, src_value, vault_word, word_idx, k0_word,
+                     auth_status_out, access_denied_out);
+        end
+    endtask
+
     task automatic check_pc(
         input string tag,
         input logic [31:0] expected_pc
@@ -135,6 +188,48 @@ module tb_top;
         end
     endtask
 
+    task automatic check_auth(
+        input string tag,
+        input logic expected
+    );
+        begin
+            if (auth_status_out !== expected) begin
+                $display("[ERROR] %s: AUTH esperada=%0b obtenida=%0b", tag, expected, auth_status_out);
+                errors = errors + 1;
+            end else begin
+                $display("[ OK ] %s: AUTH=%0b", tag, auth_status_out);
+            end
+        end
+    endtask
+
+    task automatic check_auth_fail(
+        input string tag,
+        input logic expected
+    );
+        begin
+            if (auth_fail_out !== expected) begin
+                $display("[ERROR] %s: auth_fail esperada=%0b obtenida=%0b", tag, expected, auth_fail_out);
+                errors = errors + 1;
+            end else begin
+                $display("[ OK ] %s: auth_fail=%0b", tag, auth_fail_out);
+            end
+        end
+    endtask
+
+    task automatic check_access_denied(
+        input string tag,
+        input logic expected
+    );
+        begin
+            if (access_denied_out !== expected) begin
+                $display("[ERROR] %s: access_denied esperada=%0b obtenida=%0b", tag, expected, access_denied_out);
+                errors = errors + 1;
+            end else begin
+                $display("[ OK ] %s: access_denied=%0b", tag, access_denied_out);
+            end
+        end
+    endtask
+
     initial begin
         $dumpfile("vcd/tb_top.vcd");
         $dumpvars(0, tb_top);
@@ -142,7 +237,6 @@ module tb_top;
         // Patrón de referencia para validar IF
         $readmemh("tb/tb_program.mem", expected_instr);
 
-        expected_sll = 32'd19 << 32'd2;
         errors = 0;
         reset  = 1'b1;
 
@@ -153,32 +247,110 @@ module tb_top;
 
         reset = 1'b0;
 
-        // Verificar fetch y efecto funcional de MOV-imm/BEQ/JMP/CMP/SRL/SLL.
+        // Verificar fetch y efectos de instrucciones de autenticacion.
+        // Ciclos 0..14 cubren instrucciones 0..14 del tb_program.mem
         for (cycle = 0; cycle < TEST_CYCLES; cycle = cycle + 1) begin
             @(posedge clk);
             #1;
             check_fetch($sformatf("cycle_%0d", cycle));
 
+            // Monitor inline: imprime estado de boveda en el mismo ciclo que la instruccion
+            if (dut.vault_write) begin
+                $display("[MONITOR] VSTR pc=0x%08h slot=%0d word=%0d rs1=0x%08h vault=0x%08h auth=%0b denied=%0b",
+                         pc_out, dut.slot, dut.palabra, dut.reg_data_1,
+                         dut.vault_inst.vault[dut.slot][dut.palabra],
+                         auth_status_out, access_denied_out);
+            end
+            if (dut.vault_load_secure) begin
+                $display("[MONITOR] VLD  pc=0x%08h slot=%0d word=%0d vault=0x%08h k_reg[%0d]=0x%08h auth=%0b denied=%0b",
+                         pc_out, dut.slot, dut.palabra,
+                         dut.vault_inst.vault[dut.slot][dut.palabra],
+                         dut.palabra, dut.k_reg[dut.palabra],
+                         auth_status_out, access_denied_out);
+            end
+            if (dut.vault_clear) begin
+                $display("[MONITOR] VCLR pc=0x%08h slot=%0d w0=0x%08h w1=0x%08h w2=0x%08h w3=0x%08h auth=%0b denied=%0b",
+                         pc_out, dut.slot,
+                         dut.vault_inst.vault[dut.slot][0],
+                         dut.vault_inst.vault[dut.slot][1],
+                         dut.vault_inst.vault[dut.slot][2],
+                         dut.vault_inst.vault[dut.slot][3],
+                         auth_status_out, access_denied_out);
+            end
+
             case (cycle)
-                0: check_reg("MOV r3,#19", 3, 32'd19);
-                1: check_reg("MOV r4,#2",  4, 32'd2);
-                2: check_reg("SLL r5,r3,r4", 5, expected_sll);
-                3: check_reg("SRL r6,r5,r4", 6, 32'd19);
-                4: check_flag_z("CMP r6,r3 => Z=1", 1'b1);
+                // --- Construccion del password 0xA5A5A5A5 ---
+                0: check_reg("MOV r0,#0xA5A5", 0, 32'h0000A5A5);
+                1: check_reg("MOV r4,#16",     4, 32'd16);
+                2: check_reg("SLL r0,r0,r4",   0, 32'hA5A50000);
+                3: check_reg("MOV r1,#0xA5A5", 1, 32'h0000A5A5);
+                4: check_reg("OR r0,r0,r1 (password)", 0, 32'hA5A5A5A5);
+
+                // --- VAUTH con password correcto ---
                 5: begin
-                    check_pc("BEQ tomado a indice 7", 32'h0000001C);
-                    check_reg("BEQ salta MOV r0,r2", 0, 32'd0);
+                    check_auth("VAUTH r0 correcto -> AUTH=1", 1'b1);
                 end
+
+                // --- VSTR con sesion activa ---
                 6: begin
-                    check_pc("JMP tomado a indice 9", 32'h00000024);
-                    check_reg("JMP salta MOV r7,r1", 7, 32'd0);
+                    check_auth("VSTR: sesion activa", 1'b1);
+                    check_access_denied("VSTR: sin denegacion", 1'b0);
+                    log_vault_trace("VSTR ejecutado", 0, 0, dut.dp.rf.registers[0]);
+                    check_vault_word("VSTR guarda password en vault[0][0]", 0, 0, 32'hA5A5A5A5);
                 end
+
+                // --- VLD con sesion activa ---
+                7: begin
+                    check_auth("VLD: sesion activa", 1'b1);
+                    check_access_denied("VLD: sin denegacion", 1'b0);
+                    log_vault_trace("VLD ejecutado", 0, 0, dut.dp.rf.registers[0]);
+                    check_kreg("VLD carga k0 desde vault[0][0]", 0, 32'hA5A5A5A5);
+                end
+
+                // --- VLOGOUT ---
+                8: begin
+                    check_auth("VLOGOUT -> AUTH=0", 1'b0);
+                end
+
+                // --- Construccion de password incorrecto ---
+                9: check_reg("MOV r2,#0xDEAD", 2, 32'h0000DEAD);
+
+                // --- VAUTH con password incorrecto ---
+                10: begin
+                    check_auth("VAUTH r2 incorrecto -> AUTH=0", 1'b0);
+                    check_auth_fail("VAUTH r2 incorrecto -> auth_fail=1", 1'b1);
+                end
+
+                // --- VSTR sin autenticacion -> access denied ---
+                11: begin
+                    check_access_denied("VSTR sin auth -> access_denied=1", 1'b1);
+                    log_vault_trace("VSTR bloqueado por falta de auth", 0, 0, dut.dp.rf.registers[0]);
+                    check_vault_word("VSTR sin auth no modifica vault[0][0]", 0, 0, 32'hA5A5A5A5);
+                end
+
+                // --- Re-autenticacion con password correcto ---
+                12: begin
+                    check_auth("VAUTH r0 re-auth -> AUTH=1", 1'b1);
+                end
+
+                // --- VCLR con sesion activa ---
+                13: begin
+                    check_auth("VCLR: sesion activa", 1'b1);
+                    check_access_denied("VCLR: sin denegacion", 1'b0);
+                    check_vault_word("VCLR borra vault[0][0]", 0, 0, 32'h00000000);
+                end
+
+                // --- VLOGOUT final ---
+                14: begin
+                    check_auth("VLOGOUT final -> AUTH=0", 1'b0);
+                end
+
                 default: begin end
             endcase
         end
 
         if (errors == 0) begin
-            $display("[PASS] tb_top: fetch desde tb/tb_program.mem sin errores.");
+            $display("[PASS] tb_top: prueba de autenticacion completada sin errores.");
         end else begin
             $display("[FAIL] tb_top: total de errores = %0d", errors);
         end
