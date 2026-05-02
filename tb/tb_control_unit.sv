@@ -64,6 +64,7 @@ module tb_control_unit;
     localparam OP_XORTEA  = 5'b10100;
     localparam OP_SRLI    = 5'b10101;
     localparam OP_SLLI    = 5'b10110;
+    localparam OP_NOP     = 5'b11111;
 
     // -----------------------------
     // ALU OPS

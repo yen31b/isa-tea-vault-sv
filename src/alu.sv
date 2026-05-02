@@ -51,7 +51,7 @@ module alu (
             ALU_SRL:    result = a >> b[4:0];
             ALU_SLL:    result = a << b[4:0];
             ALU_MUL:    result = a * b;
-            ALU_MOV:    result = a;
+            ALU_MOV:    result = b; // b = sign-extended immediate when use_imm=1
             ALU_AND:    result = a & b;
             ALU_XORTEA: begin // XORTEA (Privileged)
                 if (auth_in) begin
