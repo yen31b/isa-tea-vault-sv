@@ -9,3 +9,8 @@ sim_top
 espec_proyecto.md
 /.agents
 /graphify-out
+sim_auth
+sim_decode
+sim_dmem
+sim_fetch
+sim_vault
