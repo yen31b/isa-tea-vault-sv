@@ -36,14 +36,14 @@ module tb_integration_cpu_vault;
     always #5 clk = ~clk;
     assign reset = rst; // auth_unit usa "reset", data_mem usa "reset", key_vault usa "rst"
 
-    // ---- Señales instruction_decode ----
+    // ---- Señales instruction_decode (4-bit register fields) ----
     logic [31:0] instruction;
     logic [4:0]  opcode;
-    logic [4:0]  rd, rs1, rs2, rs3;
+    logic [3:0]  rd, rs1, rs2, rs3;
     logic [2:0]  slot, palabra;
-    logic [20:0] imm;
+    logic [18:0] imm;
     logic [2:0]  format_type;
-    logic [17:0] reservado;
+    logic [16:0] reservado;
 
     // ---- Señales control_unit ----
     logic        reg_write, mem_read, mem_write, mem_to_reg;
@@ -179,9 +179,10 @@ module tb_integration_cpu_vault;
 
     // ==========================================================
     // CONSTRUCCIÓN DE INSTRUCCIONES
-    // Formato M:  [31:27]=opcode | [26:24]=rd | [23:21]=rs1 | [20:0]=imm
-    // Formato K:  [31:27]=opcode | [26:24]=slot | [23:21]=palabra | [20:18]=rs1
-    // Formato R:  [31:27]=opcode | [26:24]=rd | [23:21]=rs1 | [20:18]=rs2
+    // New layouts (4-bit register fields):
+    //   Formato M:  [31:27]=opcode | [26:23]=rd/rs2 | [22:19]=rs1 | [18:0]=imm
+    //   Formato K:  [31:27]=opcode | [26:24]=slot | [23:21]=word | [20:17]=rs1 | [16:0]=reserved
+    //   Formato R:  [31:27]=opcode | [26:23]=rd | [22:19]=rs1 | [18:15]=rs2
     // ==========================================================
 
     // Opcodes (de control_unit.sv de P1)
@@ -222,13 +223,13 @@ module tb_integration_cpu_vault;
 
         // --------------------------------------------------
         // TEST 1: ST — escribir en data_mem
-        // ST r2, 0(r0) → opcode=ST, rd=r2(src), rs1=r0(base), imm=0
-        // Formato M: [31:27]=00001 | [26:24]=010 | [23:21]=000 | [20:0]=0
+        // ST r2, 0(r0) → opcode=ST, rs2=r2(src), rs1=r0(base), imm=0
+        // Formato M: [31:27]=00001 | [26:23]=0010 | [22:19]=0000 | [18:0]=0
         // --------------------------------------------------
         $display("\033[36m--- TEST 1: ST (mem_write) ---\033[0m");
         address    = 32'h00000010; // base + offset calculado por datapath stub
         write_data = 32'hDEADBEEF;
-        ejecutar({OP_ST, 3'b010, 3'b000, 21'b0}, "ST");
+        ejecutar({OP_ST, 4'b0010, 4'b0000, 19'b0}, "ST");
         check(mem_write, 1'b1, "mem_write");
         check(mem_read,  1'b0, "mem_read");
         // Verificar que el dato esta en data memory
@@ -239,11 +240,11 @@ module tb_integration_cpu_vault;
         // --------------------------------------------------
         // TEST 2: LD — leer de data_mem
         // LD r1, 0(r0)
-        // Formato M: [31:27]=00000 | [26:24]=001 | [23:21]=000 | [20:0]=0
+        // Formato M: [31:27]=00000 | [26:23]=0001 | [22:19]=0000 | [18:0]=0
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 2: LD (mem_read) ---\033[0m");
         address = 32'h00000010; // misma addr que ST
-        ejecutar({OP_LD, 3'b001, 3'b000, 21'b0}, "LD");
+        ejecutar({OP_LD, 4'b0001, 4'b0000, 19'b0}, "LD");
         check(mem_read,  1'b1, "mem_read");
         check(mem_write, 1'b0, "mem_write");
         #1;
@@ -255,11 +256,11 @@ module tb_integration_cpu_vault;
         // --------------------------------------------------
         // TEST 3: VAUTH con password correcto
         // VAUTH r1 → rs1_data debe tener el SECRET
-        // Formato K: [31:27]=10001 | [26:24]=000 | [23:21]=000 | [20:18]=001(rs1)
+        // Formato K: [31:27]=10001 | [26:24]=000 | [23:21]=000 | [20:17]=0001(rs1)
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 3: VAUTH password correcto ---\033[0m");
         rs1_data = SECRET; // simula que r1 tiene el password
-        ejecutar({OP_VAUTH, 3'b000, 3'b000, 3'b001, 18'b0}, "VAUTH OK");
+        ejecutar({OP_VAUTH, 3'b000, 3'b000, 4'b0001, 17'b0}, "VAUTH OK");
         @(posedge clk); #1; // auth_unit es síncrono
         check(auth_status, 1'b1, "auth_status");
         check(auth_fail,   1'b0, "auth_fail");
@@ -269,12 +270,12 @@ module tb_integration_cpu_vault;
         // Primero hacer logout, luego intentar con password malo
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 4: VAUTH password incorrecto ---\033[0m");
-        ejecutar({OP_VLOGOUT, 3'b000, 3'b000, 3'b000, 18'b0}, "VLOGOUT");
+        ejecutar({OP_VLOGOUT, 3'b000, 3'b000, 4'b0000, 17'b0}, "VLOGOUT");
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status tras VLOGOUT");
 
         rs1_data = 32'hBADBADBA; // password incorrecto
-        ejecutar({OP_VAUTH, 3'b000, 3'b000, 3'b001, 18'b0}, "VAUTH FAIL");
+        ejecutar({OP_VAUTH, 3'b000, 3'b000, 4'b0001, 17'b0}, "VAUTH FAIL");
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status=0");
         check(auth_fail,   1'b1, "auth_fail=1");
@@ -285,23 +286,22 @@ module tb_integration_cpu_vault;
         $display("\n\033[36m--- TEST 5: VSTR sin autenticacion (acceso no autorizado)---\033[0m");
         rs1_data = 32'hCAFEBABE;
         // VSTR slot=0, palabra=0, rs1=r1
-        // Formato K: [31:27]=01110 | [26:24]=000(slot) | [23:21]=000(palabra) | [20:18]=001(rs1)
-        ejecutar({OP_VSTR, 3'b000, 3'b000, 3'b001, 18'b0}, "VSTR no-auth");
+        // Formato K: [31:27]=01110 | [26:24]=000(slot) | [23:21]=000(palabra) | [20:17]=0001(rs1)
+        ejecutar({OP_VSTR, 3'b000, 3'b000, 4'b0001, 17'b0}, "VSTR no-auth");
         @(posedge clk); #1;
         check(illegal_access, 1'b1, "illegal_access");
-        //check(exc_out,        1'b1, "exc_out"); // exc_out se activa pero no es síncrono, no podemos garantizar que vaya a estar activo justo en este ciclo
 
         // --------------------------------------------------
         // TEST 6: VAUTH correcto → luego VSTR exitoso
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 6: VSTR autenticado ---\033[0m");
         rs1_data = SECRET;
-        ejecutar({OP_VAUTH, 3'b000, 3'b000, 3'b001, 18'b0}, "VAUTH OK");
+        ejecutar({OP_VAUTH, 3'b000, 3'b000, 4'b0001, 17'b0}, "VAUTH OK");
         @(posedge clk); #1;
         check(auth_status, 1'b1, "auth_status=1");
 
         rs1_data = 32'hA1B2C3D4; // dato a guardar en vault
-        ejecutar({OP_VSTR, 3'b000, 3'b000, 3'b001, 18'b0}, "VSTR auth");
+        ejecutar({OP_VSTR, 3'b000, 3'b000, 4'b0001, 17'b0}, "VSTR auth");
         @(posedge clk); #1;
         check(vault_write,    1'b1, "vault_write");
         check(illegal_access, 1'b0, "illegal_access=0");
@@ -316,8 +316,8 @@ module tb_integration_cpu_vault;
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 7: VLD autenticado ---\033[0m");
         // VLD slot=0, palabra=0 → k_reg[0]
-        // Formato K: [31:27]=01111 | [26:24]=000(slot) | [23:21]=000(palabra) | [20:18]=000
-        ejecutar({OP_VLD, 3'b000, 3'b000, 3'b000, 18'b0}, "VLD");
+        // Formato K: [31:27]=01111 | [26:24]=000(slot) | [23:21]=000(palabra) | [20:17]=0000
+        ejecutar({OP_VLD, 3'b000, 3'b000, 4'b0000, 17'b0}, "VLD");
         @(posedge clk); #1;
         check(vault_load_secure, 1'b1, "vault_load_secure");
         if (k_reg0 === 32'hA1B2C3D4)
@@ -329,7 +329,7 @@ module tb_integration_cpu_vault;
         // TEST 8: VCLR — borrar slot
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 8: VCLR autenticado ---\033[0m");
-        ejecutar({OP_VCLR, 3'b000, 3'b000, 3'b000, 18'b0}, "VCLR");
+        ejecutar({OP_VCLR, 3'b000, 3'b000, 4'b0000, 17'b0}, "VCLR");
         @(posedge clk); #1;
         check(vault_clear, 1'b1, "vault_clear");
         if (u_vault.vault[0][0] === 32'h0)
@@ -341,7 +341,7 @@ module tb_integration_cpu_vault;
         // TEST 9: VLOGOUT — cerrar sesión
         // --------------------------------------------------
         $display("\n\033[36m--- TEST 9: VLOGOUT ---\033[0m");
-        ejecutar({OP_VLOGOUT, 3'b000, 3'b000, 3'b000, 18'b0}, "VLOGOUT");
+        ejecutar({OP_VLOGOUT, 3'b000, 3'b000, 4'b0000, 17'b0}, "VLOGOUT");
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status=0 tras logout");
 

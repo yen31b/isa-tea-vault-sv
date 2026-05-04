@@ -1,32 +1,260 @@
 // Programa de prueba para autenticacion (VAUTH, VLOGOUT, VSTR, VLD, VCLR)
+// Nuevo layout con campos de registro de 4 bits:
+//   Formato I (MOV): [5 op][4 rd][4 rs1=0][19 imm]
+//   Formato R (SLL): [5 op][4 rd][4 rs1][4 rs2][15 unused]
+//   Formato R (OR):  [5 op][4 rd][4 rs1][4 rs2][15 unused]
+//   Formato K:       [5 op][3 slot][3 word][4 rs1][17 reserved]
+//
 //  0: MOV r0, #0xA5A5        ; r0 = 0x0000A5A5
-//  1: MOV r4, #16            ; r4 = 16  (shift amount)
-//  2: SLL r0, r0, r4         ; r0 = 0xA5A50000
-//  3: MOV r1, #0xA5A5        ; r1 = 0x0000A5A5
-//  4: OR  r0, r0, r1         ; r0 = 0xA5A5A5A5  (password correcto)
-//  5: VAUTH r0               ; autenticar con password correcto -> auth_status=1
-//  6: VSTR slot=0,word=0,r0  ; guardar r0 en vault[0][0] (requiere auth)
-//  7: VLD  slot=0,word=0     ; cargar vault[0][0] en k0  (requiere auth)
-//  8: VLOGOUT                ; cerrar sesion -> auth_status=0
-//  9: MOV r2, #0xDEAD        ; r2 = 0xDEAD  (password incorrecto)
-// 10: VAUTH r2               ; autenticar con password incorrecto -> auth_fail=1
-// 11: VSTR slot=0,word=0,r0  ; intento sin auth -> access_denied=1
-// 12: VAUTH r0               ; re-autenticar con password correcto -> auth_status=1
-// 13: VCLR slot=0            ; borrar slot 0 de boveda  (requiere auth)
-// 14: VLOGOUT                ; cerrar sesion -> auth_status=0
-// 15: NOP                     ; sin efectos, opcode=11111 -> 0xF8000000
+//     op=01100 rd=0000 rs1=0000 imm=000_0000_1010_0101_1010_0101 = 0x0000A5A5
+//     01100_0000_0000_00000_1010_0101_1010_0101
+//     = 0110_0000_0000_0000_0101_0010_1101_0010_1 ... NO, let me be precise.
+//
+//  Vamos a calcular bit a bit:
+//
+//  0: MOV r0, #0xA5A5
+//     op=01100(5) rd=0000(4) rs1=0000(4) imm[18:0]=0x0A5A5(19)=0_0000_1010_0101_1010_0101
+//     Bits: 01100 0000 0000 000001010010110100101
+//     Wait, imm is 19 bits. 0xA5A5 = 0b1010_0101_1010_0101 = 16 bits, fits in 19.
+//     19-bit: 000_1010_0101_1010_0101
+//     Full: 01100_0000_0000_000_1010_0101_1010_0101
+//     Group by 4: 0110 0000 0000 0000 1010 0101 1010 0101
+//     Hex: 6000A5A5 — same as before! Because rd=0 was 3 bits=000, now 4 bits=0000, 
+//     and rs1=0 was 3 bits=000, now 4 bits=0000. op stays 5 bits.
+//     OLD: 01100_000_000_0_0000_1010_0101_1010_0101 = 6000A5A5
+//     NEW: 01100_0000_0000_000_1010_0101_1010_0101 = 6000A5A5
+//     Actually same hex! Let me verify more carefully.
+//
+//     OLD format I: [5 op=01100][3 rd=000][3 rs1=000][21 imm=0x0A5A5]
+//       01100 000 000 0_0000_0000_1010_0101_1010_0101 = 0110_0000_0000_0000_1010_0101_1010_0101
+//       Hmm, but 21-bit imm: 0xA5A5 = 0b000_0000_1010_0101_1010_0101 (21 bits)
+//       Full 32: 01100_000_000_000001010010110100101
+//       = 01100|000|000|000001010010110100101
+//       = 0110_0000_0000_0000_1010_0101_1010_0101 = 0x6000A5A5 ✓
+//
+//     NEW format I: [5 op=01100][4 rd=0000][4 rs1=0000][19 imm]
+//       19-bit imm for 0xA5A5: 000_1010_0101_1010_0101 (19 bits)
+//       Full 32: 01100_0000_0000_0001010010110100101
+//       = 0110_0000_0000_0001_0100_1011_0100_101 ... wait this doesn't look right.
+//       Let me be more careful:
+//       5+4+4+19 = 32 ✓
+//       01100 0000 0000 0001010010110100101
+//       Split into groups of 4 from MSB:
+//       0110 0000 0000 0001 0100 1011 0100 0101  ... no
+//       Let me lay it out:
+//       Bit31-27: 01100
+//       Bit26-23: 0000  (rd=0)
+//       Bit22-19: 0000  (rs1=0)
+//       Bit18-0:  000_1010_0101_1010_0101 = 0xA5A5 in 19 bits = 0x0A5A5
+//       
+//       Binary: 01100 0000 0000 000 1010 0101 1010 0101
+//       Hmm, 5+4+4 = 13 bits, then 19 bits = 32 total
+//       Positions: [31:27]=01100, [26:23]=0000, [22:19]=0000, [18:0]=000_1010_0101_1010_0101
+//       
+//       Full binary left to right: 0 1 1 0 0 | 0 0 0 0 | 0 0 0 0 | 0 0 0 1 0 1 0 0 1 0 1 1 0 1 0 0 1 0 1
+//       Wait that's only 31 bits. Let me recount.
+//       0xA5A5 = 42405 in decimal
+//       19 bits: 0b000_1010_0101_1010_0101 (19 bits) ✓
+//       
+//       All 32 bits: 01100_0000_0000_000_1010_0101_1010_0101
+//       That's 5+4+4+3+16 = 32 ... the 19-bit imm is 000_1010_0101_1010_0101
+//       
+//       Grouping from MSB: 0110_0000_0000_0001_0100_1011_0100_0101 ... no
+//       Let me just do it position by position:
+//       bit31=0, bit30=1, bit29=1, bit28=0, bit27=0 (opcode=01100)
+//       bit26=0, bit25=0, bit24=0, bit23=0 (rd=0000)
+//       bit22=0, bit21=0, bit20=0, bit19=0 (rs1=0000)
+//       bit18..0 = 0xA5A5 = 0b000_1010_0101_1010_0101
+//       bit18=0,bit17=0,bit16=0,bit15=1,bit14=0,bit13=1,bit12=0,bit11=0,
+//       bit10=1,bit9=0,bit8=1,bit7=1,bit6=0,bit5=1,bit4=0,bit3=0,bit2=1,bit1=0,bit0=1
+//       
+//       Full: 01100000 00000001 01001011 01000101 ... hmm
+//       Wait: bit18=0,bit17=0,bit16=0,bit15=1,bit14=0,bit13=1,bit12=0,bit11=0
+//       0xA5A5 = 1010 0101 1010 0101 (16 bits), in 19 bits = 000 1010 0101 1010 0101
+//       So bit18=0, bit17=0, bit16=0, bit15=1, bit14=0, bit13=1, bit12=0, bit11=0,
+//          bit10=1, bit9=0, bit8=1, bit7=1, bit6=0, bit5=1, bit4=0, bit3=0,
+//          bit2=1, bit1=0, bit0=1
+//       
+//       Byte 3 (bits 31-24): 0110_0000 = 0x60
+//       Byte 2 (bits 23-16): 0000_0001 ... wait
+//       bit23=0(rd LSB), bit22=0,bit21=0,bit20=0,bit19=0(rs1), bit18=0,bit17=0,bit16=0
+//       = 0000_0000 = 0x00
+//       Byte 1 (bits 15-8): 1010_0101 = 0xA5
+//       Byte 0 (bits 7-0): 1010_0101 = 0xA5
+//       
+//       Result: 0x6000A5A5  ✓ Same!
+//
+//  1: MOV r4, #16
+//     OLD: op=01100 rd=100(3) rs1=000(3) imm=16(21)
+//       01100_100_000_000000000000000010000 = 0110_0100_0000_0000_0000_0000_0001_0000 = 0x64000010
+//     NEW: op=01100 rd=0100(4) rs1=0000(4) imm=16(19)
+//       01100_0100_0000_000_0000_0000_0001_0000
+//       Byte3: 0110_0010 = 0x62
+//       Byte2: 0000_0000 = 0x00  ... wait
+//       bit31-27: 01100  bit26-23: 0100  bit22-19: 0000  bit18-0: 0x00010 = 16
+//       Byte3(31-24): 01100_010 = 0x62
+//       bit24 is part of rd: rd=0100, so bit26=0,bit25=1,bit24=0,bit23=0
+//       byte3 = bit31..24 = 0,1,1,0,0,0,1,0 = 0x62
+//       byte2 = bit23..16 = 0,0,0,0,0,0,0,0 = 0x00
+//       byte1 = bit15..8  = 0,0,0,0,0,0,0,1 = 0x01 ... wait no, imm=16=0b10000
+//       bit18-0 = 000_0000_0000_0001_0000
+//       bit18=0,bit17=0,bit16=0,bit15=0,bit14=0,bit13=0,bit12=0,bit11=0,
+//       bit10=0,bit9=0,bit8=0,bit7=0,bit6=1,bit5=0,bit4=0,bit3=0,
+//       bit2=0,bit1=0,bit0=0
+//       byte1 = bit15..8 = 0,0,0,0,0,0,0,0 = 0x00
+//       byte0 = bit7..0  = 0,1,0,0,0,0,0,0 ... no wait
+//       16 = 0b10000, in 19 bits = 000_0000_0000_0001_0000
+//       bit4=1, rest 0
+//       byte0 = bit7..0  = 0,0,0,1,0,0,0,0 = 0x10
+//       
+//       Result: 0x62000010
+//
+//  2: SLL r0, r0, r4
+//     OLD: op=01001 rd=000(3) rs1=000(3) rs2=100(3) unused(18)
+//       01001_000_000_100_000000000000000000 = 0100_1000_0001_0000_0000_0000_0000_0000 = 0x48100000
+//     NEW: op=01001 rd=0000(4) rs1=0000(4) rs2=0100(4) unused(15)
+//       01001_0000_0000_0100_000000000000000
+//       bit31-27: 01001  bit26-23: 0000  bit22-19: 0000  bit18-15: 0100  bit14-0: 0
+//       byte3: 01001_000 = bit31..24: 0,1,0,0,1,0,0,0 = 0x48
+//       byte2: bit23..16: 0,0,0,0,0,1,0,0 = 0x04
+//       byte1: bit15..8:  0,0,0,0,0,0,0,0 = 0x00
+//       byte0: bit7..0:   0,0,0,0,0,0,0,0 = 0x00
+//       Result: 0x48040000
+//
+//  3: MOV r1, #0xA5A5
+//     OLD: op=01100 rd=001(3) rs1=000(3) imm=0xA5A5(21)
+//       = 0x6100A5A5
+//     NEW: op=01100 rd=0001(4) rs1=0000(4) imm=0xA5A5(19)
+//       bit31-27: 01100  bit26-23: 0001  bit22-19: 0000  bit18-0: 000_1010_0101_1010_0101
+//       byte3: 01100_000 = 0x60  byte2: 1_0000_000 ... wait
+//       bit26=0,bit25=0,bit24=0,bit23=1 → byte3 = 0,1,1,0,0,0,0,0 = 0x60
+//       NO: bit26 is the MSB of rd. rd=0001: bit26=0,bit25=0,bit24=0,bit23=1
+//       byte3(31-24): bit31=0,bit30=1,bit29=1,bit28=0,bit27=0,bit26=0,bit25=0,bit24=0 = 0x60
+//       byte2(23-16): bit23=1,bit22=0,bit21=0,bit20=0,bit19=0,bit18=0,bit17=0,bit16=0 = 0x80
+//       byte1(15-8): bit15=1,bit14=0,bit13=1,bit12=0,bit11=0,bit10=1,bit9=0,bit8=1 = 0xA5
+//       byte0(7-0): bit7=1,bit6=0,bit5=1,bit4=0,bit3=0,bit2=1,bit1=0,bit0=1 = 0xA5
+//       Result: 0x6080A5A5
+//
+//  4: OR r0, r0, r1
+//     OLD: op=00110 rd=000(3) rs1=000(3) rs2=001(3) unused(18)
+//       = 0x30040000
+//     NEW: op=00110 rd=0000(4) rs1=0000(4) rs2=0001(4) unused(15)
+//       bit31-27: 00110  bit26-23: 0000  bit22-19: 0000  bit18-15: 0001  bit14-0: 0
+//       byte3: 00110_000 = 0x30  (actually: 0,0,1,1,0,0,0,0 = 0x30)
+//       byte2: 0_0000_000 ... bit23=0,bit22=0,bit21=0,bit20=0,bit19=0,bit18=0,bit17=0,bit16=0 = 0x00
+//       byte1: bit15=1,bit14-8=0000000 = 0x80 ... wait
+//       rs2=0001: bit18=0,bit17=0,bit16=0,bit15=1
+//       byte2(23-16): 0,0,0,0,0,0,0,0 = 0x00
+//       byte1(15-8): 1,0,0,0,0,0,0,0 = 0x80
+//       byte0(7-0): 0,0,0,0,0,0,0,0 = 0x00
+//       Result: 0x30008000
+//
+//  5: VAUTH r0
+//     OLD: op=10001 slot=000 word=000 rs1=000(3) reserved(18)
+//       = 0x88000000
+//     NEW: op=10001 slot=000 word=000 rs1=0000(4) reserved(17)
+//       bit31-27: 10001  bit26-24: 000  bit23-21: 000  bit20-17: 0000  bit16-0: 0
+//       byte3: 10001_000 = 0x88  byte2: 000_00000 = 0x00  byte1: 0x00  byte0: 0x00
+//       Result: 0x88000000 — same!
+//
+//  6: VSTR slot=0, word=0, r0
+//     OLD: op=01110 slot=000 word=000 rs1=000(3) reserved(18)
+//       = 0x70000000
+//     NEW: op=01110 slot=000 word=000 rs1=0000(4) reserved(17)
+//       byte3: 01110_000 = 0x70  rest=0
+//       Result: 0x70000000 — same!
+//
+//  7: VLD slot=0, word=0
+//     OLD: = 0x78000000
+//     NEW: op=01111 slot=000 word=000 rs1=0000(4) reserved(17)
+//       byte3: 01111_000 = 0x78  rest=0
+//       Result: 0x78000000 — same!
+//
+//  8: VLOGOUT
+//     OLD: = 0x90000000
+//     NEW: op=10010 slot=000 word=000 rs1=0000 reserved=0
+//       byte3: 10010_000 = 0x90  rest=0
+//       Result: 0x90000000 — same!
+//
+//  9: MOV r2, #0xDEAD
+//     OLD: op=01100 rd=010(3) rs1=000(3) imm=0xDEAD(21)
+//       = 0x6200DEAD
+//     NEW: op=01100 rd=0010(4) rs1=0000(4) imm=0xDEAD(19)
+//       bit31-27: 01100  bit26-23: 0010  bit22-19: 0000
+//       byte3: 01100_001 = 0x61  byte2: 0_0000_000 ...
+//       bit31=0,bit30=1,bit29=1,bit28=0,bit27=0,bit26=0,bit25=0,bit24=1 = 0x61
+//       bit23=0,bit22=0,bit21=0,bit20=0,bit19=0,bit18=0,bit17=0,bit16=0 = 0x00
+//       0xDEAD = 0b1101_1110_1010_1101 (16 bits), in 19 bits: 000_1101_1110_1010_1101
+//       bit15=1,bit14=1,bit13=0,bit12=1,bit11=1,bit10=1,bit9=1,bit8=0 = 0xDE
+//       bit7=1,bit6=0,bit5=1,bit4=0,bit3=1,bit2=1,bit1=0,bit0=1 = 0xAD
+//       Result: 0x6100DEAD
+//
+// 10: VAUTH r2
+//     OLD: op=10001 slot=000 word=000 rs1=010(3) reserved(18)
+//       = 0x88080000 (rs1=010 at bits [20:18])
+//     NEW: op=10001 slot=000 word=000 rs1=0010(4) reserved(17)
+//       bit31-27: 10001  bit26-24: 000  bit23-21: 000  bit20-17: 0010  bit16-0: 0
+//       byte3: 10001_000 = 0x88
+//       byte2: 000_00010 = bit23..16: 0,0,0,0,0,0,1,0 = 0x02 ... wait
+//       bit23=0,bit22=0,bit21=0,bit20=0,bit19=0,bit18=1,bit17=0,bit16=0 ... hmm
+//       rs1=0010: bit20=0,bit19=0,bit18=1,bit17=0
+//       byte2(23-16): bit23=0,bit22=0,bit21=0,bit20=0,bit19=0,bit18=1,bit17=0,bit16=0 = 0x04
+//       NO wait. Let me re-check the K format layout.
+//       K: [31:27]=opcode(5) [26:24]=slot(3) [23:21]=word(3) [20:17]=rs1(4) [16:0]=reserved(17)
+//       rs1=0010: bit20=0, bit19=0, bit18=1, bit17=0
+//       byte3(31-24): 1,0,0,0,1,0,0,0 = 0x88
+//       byte2(23-16): 0,0,0,0,0,1,0,0 = 0x04
+//       byte1(15-8):  0,0,0,0,0,0,0,0 = 0x00
+//       byte0(7-0):   0,0,0,0,0,0,0,0 = 0x00
+//       Result: 0x88040000
+//
+// 11: VSTR slot=0, word=0, r0 (sin auth)
+//     Same as instruction 6: 0x70000000
+//
+// 12: VAUTH r0 (re-auth)
+//     Same as instruction 5: 0x88000000
+//
+// 13: VCLR slot=0
+//     OLD: = 0x80000000
+//     NEW: op=10000 slot=000 word=000 rs1=0000 reserved=0
+//       byte3: 10000_000 = 0x80  rest=0
+//       Result: 0x80000000 — same!
+//
+// 14: VLOGOUT
+//     Same as instruction 8: 0x90000000
+//
+// 15: NOP
+//     op=11111 rest=0 = 0xF8000000 — same!
+
+// Summary of new hex values:
+//  0: MOV r0, #0xA5A5        → 6000A5A5
+//  1: MOV r4, #16            → 62000010
+//  2: SLL r0, r0, r4         → 48040000
+//  3: MOV r1, #0xA5A5        → 6080A5A5
+//  4: OR  r0, r0, r1         → 30008000
+//  5: VAUTH r0               → 88000000
+//  6: VSTR slot=0,word=0,r0  → 70000000
+//  7: VLD  slot=0,word=0     → 78000000
+//  8: VLOGOUT                → 90000000
+//  9: MOV r2, #0xDEAD        → 6100DEAD
+// 10: VAUTH r2               → 88040000
+// 11: VSTR slot=0,word=0,r0  → 70000000
+// 12: VAUTH r0               → 88000000
+// 13: VCLR slot=0            → 80000000
+// 14: VLOGOUT                → 90000000
+// 15: NOP                    → F8000000
 
 6000A5A5
-64000010
-48100000
-6100A5A5
-30040000
+62000010
+48040000
+6080A5A5
+30008000
 88000000
 70000000
 78000000
 90000000
-6200DEAD
-88080000
+6100DEAD
+88040000
 70000000
 88000000
 80000000

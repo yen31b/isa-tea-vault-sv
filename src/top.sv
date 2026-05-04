@@ -8,7 +8,7 @@
 //   WB  → write-back mux dentro de datapath (mem_to_reg)
 //
 // Correcciones de señales aplicadas aquí:
-//   1. Direcciones de registros: instruction_decode produce 5-bit (zero-ext interno)
+//   1. Direcciones de registros: instruction_decode produce 4-bit (16 registros)
 //   2. Inmediato de 21-bit → 32-bit: sign-extension
 //   3. Branch/jump target = PC + sign_ext(imm)
 //   4. zero_flag viene directo de la ALU (combinatorial) para decisiones BEQ/BEQADD
@@ -52,12 +52,12 @@ module top #(
 
     // --- ID stage ---
     logic [4:0]  opcode;
-    logic [4:0]  rd_addr, rs1_addr, rs2_addr, rs3_addr; // 5-bit: instruction_decode hace zero-extend
-    logic [20:0] imm;
+    logic [3:0]  rd_addr, rs1_addr, rs2_addr, rs3_addr; // 4-bit: 16 registros (r0-r15)
+    logic [18:0] imm;
     logic [2:0]  format_type;
     logic [2:0]  slot;
     logic [2:0]  palabra;
-    logic [17:0] reservado;
+    logic [16:0] reservado;
 
     // Inmediato extendido a 32 bits (con signo)
     logic [31:0] imm_ext;
@@ -107,8 +107,8 @@ module top #(
     // Extensión de signo del inmediato e targets de salto
     // ============================================================
 
-    // Sign-extend inmediato de 21 a 32 bits
-    assign imm_ext = {{11{imm[20]}}, imm};
+    // Sign-extend inmediato de 19 a 32 bits
+    assign imm_ext = {{13{imm[18]}}, imm};
 
     // Targets de salto: PC-relativo con offset de bytes
     assign branch_target = pc + imm_ext;

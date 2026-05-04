@@ -4,17 +4,17 @@ module register_file (
     input  logic        clk,
     input  logic        reset,
     input  logic        we,        // Write Enable
-    input  logic [4:0]  rs1_addr,  // Read Address 1 (5 bits for 32 regs)
-    input  logic [4:0]  rs2_addr,  // Read Address 2
-    input  logic [4:0]  rs3_addr,  // Read Address 3 (for xortea)
-    input  logic [4:0]  rd_addr,   // Write Address
+    input  logic [3:0]  rs1_addr,  // Read Address 1 (4 bits for 16 regs)
+    input  logic [3:0]  rs2_addr,  // Read Address 2
+    input  logic [3:0]  rs3_addr,  // Read Address 3 (for xortea)
+    input  logic [3:0]  rd_addr,   // Write Address
     input  logic [31:0] write_data,
     output logic [31:0] rs1_data,
     output logic [31:0] rs2_data,
     output logic [31:0] rs3_data
 );
 
-    logic [31:0] registers [31:0];
+    logic [31:0] registers [15:0];
 
     // Asynchronous read
     assign rs1_data = registers[rs1_addr];
@@ -25,7 +25,7 @@ module register_file (
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
             integer i;
-            for (i = 0; i < 32; i = i + 1) begin
+            for (i = 0; i < 16; i = i + 1) begin
                 registers[i] <= 32'b0;
             end
         end else if (we) begin

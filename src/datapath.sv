@@ -11,10 +11,10 @@ module datapath (
     input  logic        mem_to_reg,  // 0: ALU result, 1: memory data (for LD)
 
     // Register addresses (from Instruction Decoder)
-    input  logic [4:0]  rs1_addr,
-    input  logic [4:0]  rs2_addr,
-    input  logic [4:0]  rs3_addr,
-    input  logic [4:0]  rd_addr,
+    input  logic [3:0]  rs1_addr,
+    input  logic [3:0]  rs2_addr,
+    input  logic [3:0]  rs3_addr,
+    input  logic [3:0]  rd_addr,
 
     // Data from outside
     input  logic [31:0] immediate,

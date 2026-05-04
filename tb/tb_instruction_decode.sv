@@ -7,15 +7,15 @@ module tb_instruction_decode;
 
     // Salidas del DUT que queremos probar 
     logic [4:0]  opcode;
-    logic [4:0]  rd;
-    logic [4:0]  rs1;
-    logic [4:0]  rs2;
-    logic [4:0]  rs3;
-    logic [20:0] imm;
+    logic [3:0]  rd;
+    logic [3:0]  rs1;
+    logic [3:0]  rs2;
+    logic [3:0]  rs3;
+    logic [18:0] imm;
     logic [2:0]  format_type;
     logic [2:0]  slot;
     logic [2:0]  palabra;
-    logic [17:0] reservado;
+    logic [16:0] reservado;
 
     // Constantes de formato, iguales a las del decoder
     localparam FORMAT_R = 3'b000;
@@ -44,66 +44,70 @@ module tb_instruction_decode;
 
     // -------------------------
     // Funciones para codificar instrucciones
+    // Nuevo layout con 4-bit register fields:
+    //   R: [5 op][4 rd][4 rs1][4 rs2][15 unused]
+    //   I: [5 op][4 rd][4 rs1][19 imm]
+    //   M: [5 op][4 rd/rs2][4 rs1][19 imm]
+    //   J: [5 op][4 rs1][4 rs2][19 imm]
+    //   K: [5 op][3 slot][3 word][4 rs1][17 reserved]
+    //   T: [5 op][4 rd][4 rs1][4 rs2][4 rs3][11 imm]
     // -------------------------
 
     function automatic logic [31:0] encR(
         input logic [4:0] op,
-        input logic [2:0] rd_i,
-        input logic [2:0] rs1_i,
-        input logic [2:0] rs2_i
+        input logic [3:0] rd_i,
+        input logic [3:0] rs1_i,
+        input logic [3:0] rs2_i
     );
-        encR = {op, rd_i, rs1_i, rs2_i, 18'b0};
+        encR = {op, rd_i, rs1_i, rs2_i, 15'b0};
     endfunction
 
     function automatic logic [31:0] encI(
         input logic [4:0] op,
-        input logic [2:0] rd_i,
-        input logic [2:0] rs1_i,
-        input logic [20:0] imm_i
+        input logic [3:0] rd_i,
+        input logic [3:0] rs1_i,
+        input logic [18:0] imm_i
     );
         encI = {op, rd_i, rs1_i, imm_i};
     endfunction
 
     function automatic logic [31:0] encM(
         input logic [4:0] op,
-        input logic [2:0] rd_i,
-        input logic [2:0] rs1_i,
-        input logic [20:0] imm_i
+        input logic [3:0] rd_i,
+        input logic [3:0] rs1_i,
+        input logic [18:0] imm_i
     );
         encM = {op, rd_i, rs1_i, imm_i};
     endfunction
 
     function automatic logic [31:0] encJ(
         input logic [4:0] op,
-        input logic [2:0] rs1_i,
-        input logic [2:0] rs2_i,
-        input logic [20:0] imm_i
+        input logic [3:0] rs1_i,
+        input logic [3:0] rs2_i,
+        input logic [18:0] imm_i
     );
         encJ = {op, rs1_i, rs2_i, imm_i};
     endfunction
 
-// [17:0]  ceros
     function automatic logic [31:0] encK(
         input logic [4:0] op,
         input logic [2:0] slot_i,
         input logic [2:0] palabra_i,
-        input logic [2:0] rs1_i,
-        input logic [17:0] reservado_i
+        input logic [3:0] rs1_i,
+        input logic [16:0] reservado_i
     );
         encK = {op, slot_i, palabra_i, rs1_i, reservado_i};
     endfunction
 
-
-
     function automatic logic [31:0] encT(
         input logic [4:0] op,
-        input logic [2:0] rd_i,
-        input logic [2:0] rs1_i,
-        input logic [2:0] rs2_i,
-        input logic [2:0] rs3_i,
-        input logic [14:0] imm15_i
+        input logic [3:0] rd_i,
+        input logic [3:0] rs1_i,
+        input logic [3:0] rs2_i,
+        input logic [3:0] rs3_i,
+        input logic [10:0] imm11_i
     );
-        encT = {op, rd_i, rs1_i, rs2_i, rs3_i, imm15_i};
+        encT = {op, rd_i, rs1_i, rs2_i, rs3_i, imm11_i};
     endfunction
 
     // -------------------------
@@ -114,15 +118,15 @@ module tb_instruction_decode;
         input string name,
         input logic [31:0] instr_i, // recibe la instruccion que vamos a probar
         input logic [4:0]  exp_opcode, //valores que esperamos salgan del decoder
-        input logic [4:0]  exp_rd,
-        input logic [4:0]  exp_rs1,
-        input logic [4:0]  exp_rs2,
-        input logic [4:0]  exp_rs3,
-        input logic [20:0] exp_imm,
+        input logic [3:0]  exp_rd,
+        input logic [3:0]  exp_rs1,
+        input logic [3:0]  exp_rs2,
+        input logic [3:0]  exp_rs3,
+        input logic [18:0] exp_imm,
         input logic [2:0]  exp_format_type,
         input logic [2:0]  exp_slot,
         input logic [2:0]  exp_palabra,
-        input logic [17:0] exp_reservado
+        input logic [16:0] exp_reservado
     );
         int before_errors;
         begin
@@ -190,78 +194,79 @@ module tb_instruction_decode;
         $dumpfile("instruction_decode.vcd"); //Primero  se genera el archivo para GTKWave:
         $dumpvars(0, tb_instruction_decode);
 
-        $display("\033[36mIniciando pruebas de instruction_decode...\033[0m");
+        $display("\033[36mIniciando pruebas de instruction_decode (16 registros, 4-bit fields)...\033[0m");
 
         // Formato R: ADD opcode=00100, rd=3, rs1=1, rs2=2
+        // Encoding: [00100][0011][0001][0010][000_0000_0000_0000_0]
         check_decode(
             "ADD formato R",
-            encR(5'b00100, 3'd3, 3'd1, 3'd2),        // opcode = 00100
-            5'b00100, 3'd3, 3'd1, 3'd2, 3'd0, 21'd0, // rd =3
-            FORMAT_R, 3'd0, 3'd0, 18'd0              // rs1 = 1
-        );                                           // rs2 = 2
-                                                    //esperamos el decoder saque estos mismos valores 
+            encR(5'b00100, 4'd3, 4'd1, 4'd2),
+            5'b00100, 4'd3, 4'd1, 4'd2, 4'd0, 19'd0,
+            FORMAT_R, 3'd0, 3'd0, 17'd0
+        );
+
         // Formato I: SRLI opcode=10101, rd=4, rs1=2, imm=25
         check_decode(
-            "SRLI formato I",                         //opcode = 10101
-            encI(5'b10101, 3'd4, 3'd2, 21'd25),       // rd = 4
-            5'b10101, 3'd4, 3'd2, 3'd0, 3'd0, 21'd25, // rs1 = 2
-            FORMAT_I, 3'd0, 3'd0, 18'd0               // imm = 25
-        );                                            // format = FORMAT_I
+            "SRLI formato I",
+            encI(5'b10101, 4'd4, 4'd2, 19'd25),
+            5'b10101, 4'd4, 4'd2, 4'd0, 4'd0, 19'd25,
+            FORMAT_I, 3'd0, 3'd0, 17'd0
+        );
 
         // Formato M: LD opcode=00000, rd=5, rs1=6, imm=100
         check_decode(
-            "LD formato M",                            // opcode = 00000
-            encM(5'b00000, 3'd5, 3'd6, 21'd100),       // rd = 5
-            5'b00000, 3'd5, 3'd6, 3'd0, 3'd0, 21'd100, // rs1 = 6
-            FORMAT_M, 3'd0, 3'd0, 18'd0                // imm = 100
+            "LD formato M",
+            encM(5'b00000, 4'd5, 4'd6, 19'd100),
+            5'b00000, 4'd5, 4'd6, 4'd0, 4'd0, 19'd100,
+            FORMAT_M, 3'd0, 3'd0, 17'd0
         );
 
         // Formato J: BEQ opcode=00010, rs1=1, rs2=7, imm=44
         check_decode(
-            "BEQ formato J",                          // opcode = 00010
-            encJ(5'b00010, 3'd1, 3'd7, 21'd44),       // rs1 = 1 
-            5'b00010, 3'd0, 3'd1, 3'd7, 3'd0, 21'd44, // rs2 = 7
-            FORMAT_J, 3'd0, 3'd0, 18'd0               //imm = 44
+            "BEQ formato J",
+            encJ(5'b00010, 4'd1, 4'd7, 19'd44),
+            5'b00010, 4'd0, 4'd1, 4'd7, 4'd0, 19'd44,
+            FORMAT_J, 3'd0, 3'd0, 17'd0
         );
 
         // Formato K: VAUTH opcode=10001, slot=0, palabra=0, rs1=3, reservado=0
         check_decode(
-            "VAUTH formato K",                       // opcode = 10001
-            encK(5'b10001, 3'd0, 3'd0, 3'd3, 18'd0), // slot = 0
-            5'b10001, 3'd0, 3'd3, 3'd0, 3'd0, 21'd0, // palabra = 0
-            FORMAT_K, 3'd0, 3'd0, 18'd0              // rs1 = 3
-        );                                           // reservado = 0
-                                                  
+            "VAUTH formato K",
+            encK(5'b10001, 3'd0, 3'd0, 4'd3, 17'd0),
+            5'b10001, 4'd0, 4'd3, 4'd0, 4'd0, 19'd0,
+            FORMAT_K, 3'd0, 3'd0, 17'd0
+        );
+                                                   
         // Formato K: VSTR opcode=01110, slot=2, palabra=1, rs1=5, reservado=12
         check_decode(
-            "VSTR formato K",                         // opcode = 01110
-            encK(5'b01110, 3'd2, 3'd1, 3'd5, 18'd12), // slot = 2
-            5'b01110, 3'd0, 3'd5, 3'd0, 3'd0, 21'd0,  // palabra = 1
-            FORMAT_K, 3'd2, 3'd1, 18'd12              // rs1 = 5
-        );                                            // reservado = 12
-
-        // Formato T: XORTEA opcode=10100, rd=1, rs1=2, rs2=3, rs3=4, imm15=10 positivo
-        check_decode(
-            "XORTEA formato T imm positivo",                 // opcode = 10100
-            encT(5'b10100, 3'd1, 3'd2, 3'd3, 3'd4, 15'd10),  // rd = 1
-            5'b10100, 3'd1, 3'd2, 3'd3, 3'd4, 21'd10,        // rs1 = 2
-            FORMAT_T, 3'd0, 3'd0, 18'd0                      // rs2 = 3
-        );                                                   // rs3 = 4
-                                                             // imm = 10
-        // Formato T con inmediato negativo: imm15 = 15'b111111111111111 debe extenderse a 21 bits con unos
-        check_decode(
-            "XORTEA formato T imm negativo",                 //opcode = 
-            encT(5'b10100, 3'd1, 3'd2, 3'd3, 3'd4, 15'h7FFF),
-            5'b10100, 3'd1, 3'd2, 3'd3, 3'd4, 21'h1FFFFF,
-            FORMAT_T, 3'd0, 3'd0, 18'd0
+            "VSTR formato K",
+            encK(5'b01110, 3'd2, 3'd1, 4'd5, 17'd12),
+            5'b01110, 4'd0, 4'd5, 4'd0, 4'd0, 19'd0,
+            FORMAT_K, 3'd2, 3'd1, 17'd12
         );
 
-        // Opcode no reconocido: debe caer en default, formato R y campos en cero excepto opcode
+        // Formato T: XORTEA opcode=10100, rd=1, rs1=2, rs2=3, rs3=4, imm11=10 positivo
         check_decode(
-            "Opcode desconocido", // format_type = FORMAT_R, campos vacios  = 0, opcode = 11111 
+            "XORTEA formato T imm positivo",
+            encT(5'b10100, 4'd1, 4'd2, 4'd3, 4'd4, 11'd10),
+            5'b10100, 4'd1, 4'd2, 4'd3, 4'd4, 19'd10,
+            FORMAT_T, 3'd0, 3'd0, 17'd0
+        );
+
+        // Formato T con inmediato negativo: imm11 = 11'b11111111111 debe extenderse a 19 bits con unos
+        check_decode(
+            "XORTEA formato T imm negativo",
+            encT(5'b10100, 4'd1, 4'd2, 4'd3, 4'd4, 11'h7FF),
+            5'b10100, 4'd1, 4'd2, 4'd3, 4'd4, 19'h7FFFF,
+            FORMAT_T, 3'd0, 3'd0, 17'd0
+        );
+
+        // Opcode no reconocido (NOP): debe caer en NOP case, formato R y campos en cero excepto opcode
+        check_decode(
+            "NOP",
             {5'b11111, 27'd0},
-            5'b11111, 3'd0, 3'd0, 3'd0, 3'd0, 21'd0,
-            FORMAT_R, 3'd0, 3'd0, 18'd0
+            5'b11111, 4'd0, 4'd0, 4'd0, 4'd0, 19'd0,
+            FORMAT_R, 3'd0, 3'd0, 17'd0
         );
 
         if (errors == 0) begin

@@ -92,13 +92,13 @@ module tb_instruction_fetch;
         // TEST 2: Avance secuencial
         // -----------------------------
         @(posedge clk);
-        check_state("PC avanza a 4", 32'd4, 32'h64000010);
+        check_state("PC avanza a 4", 32'd4, 32'h62000010);
 
         @(posedge clk);
-        check_state("PC avanza a 8", 32'd8, 32'h48100000);
+        check_state("PC avanza a 8", 32'd8, 32'h48040000);
 
         @(posedge clk);
-        check_state("PC avanza a 12", 32'd12, 32'h6100a5a5);
+        check_state("PC avanza a 12", 32'd12, 32'h6080a5a5);
 
         // -----------------------------
         // TEST 3: Branch tomado
