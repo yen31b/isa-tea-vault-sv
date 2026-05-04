@@ -3,7 +3,8 @@
 module data_mem #(
     parameter MEM_SIZE   = 65536,   // 64 KB en bytes
     parameter ADDR_WIDTH = 32,
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 32,
+    parameter INIT_FILE  = "mem/program.mem"
 )(
     input  logic                  clk,
     input  logic                  reset,
@@ -21,7 +22,7 @@ module data_mem #(
     // Cargar datos iniciales desde archivo .mem
     // Generado por el programa de cargar archivos
     initial begin
-        $readmemh("mem/program.mem", ram);
+        $readmemh(INIT_FILE, ram);
     end
 
     assign read_data = mem_read ? {

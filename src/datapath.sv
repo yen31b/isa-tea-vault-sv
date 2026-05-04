@@ -29,7 +29,11 @@ module datapath (
     output logic [31:0] reg_data_1,  // rs1 data — needed by auth_unit (VAUTH)
     output logic [31:0] reg_data_2,  // rs2 data — needed by data_mem (ST)
     output logic        alu_zero,    // Direct combinatorial zero flag — for BEQ
-    output logic [5:0]  status_flags
+    output logic [5:0]  status_flags,
+
+    // TEA / Vault extensions
+    input  logic        index_inc,      // De control_unit (para BEQADD)
+    input  logic [31:0] k0, k1, k2, k3  // De key_vault
 );
 
     // Internal signals
@@ -42,6 +46,11 @@ module datapath (
 
     assign exc_combined = illegal_op | vault_exc_in;
 
+    // --- Index Increment logic (for BEQADD) ---
+    // BEQADD increments rs1. We override rd_addr to rs1_addr when index_inc is 1.
+    logic [3:0] actual_rd_addr;
+    assign actual_rd_addr = index_inc ? rs1_addr : rd_addr;
+
     // --- Write-back MUX: ALU result OR memory load data ---
     assign write_data_rf = mem_to_reg ? mem_data_in : alu_result;
 
@@ -53,7 +62,7 @@ module datapath (
         .rs1_addr(rs1_addr),
         .rs2_addr(rs2_addr),
         .rs3_addr(rs3_addr),
-        .rd_addr(rd_addr),
+        .rd_addr(actual_rd_addr),
         .write_data(write_data_rf),
         .rs1_data(rs1_data),
         .rs2_data(rs2_data),
@@ -68,11 +77,16 @@ module datapath (
         .a(rs1_data),
         .b(alu_operand_b),
         .c(rs3_data),
+        .k0(k0),
+        .k1(k1),
+        .k2(k2),
+        .k3(k3),
         .alu_op(alu_op),
         .auth_in(auth_status_in),
         .result(alu_result),
         .flags(alu_flags),
-        .illegal_op(illegal_op)
+        .illegal_op(illegal_op),
+        .imm_idx(immediate[1:0]) // Usar bits del inmediato para seleccionar llave
     );
 
     // Direct combinatorial zero flag for branch decisions (BEQ/BEQADD)

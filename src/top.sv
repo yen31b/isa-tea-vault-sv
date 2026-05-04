@@ -21,6 +21,7 @@
 module top #(
     parameter INSTR_MEM_SIZE = 1024,           // Número de instrucciones de 32 bits
     parameter PROGRAM_FILE   = "program.mem",  // Archivo de instrucciones (IF)
+    parameter DATA_FILE      = "mem/program.mem", // Archivo de datos (MEM)
     parameter DATA_MEM_SIZE  = 65536,          // 64 KB RAM de datos
     parameter AUTH_SECRET    = 32'hA5A5A5A5,  // Contraseña interna para VAUTH
     parameter AUTH_TIMEOUT   = 8'd64          // Ciclos de validez de la sesión
@@ -255,11 +256,16 @@ module top #(
         .mem_data_in   (mem_read_data),    // dato leído de RAM → WB mux
         .auth_status_in(auth_status),      // de auth_unit
         .vault_exc_in  (vault_exc),        // de key_vault
+        .k0            (k_reg0),           // llaves seguras para ADDK/XORTEA
+        .k1            (k_reg1),
+        .k2            (k_reg2),
+        .k3            (k_reg3),
         .alu_result    (alu_result),
         .reg_data_1    (reg_data_1),
         .reg_data_2    (reg_data_2),
         .alu_zero      (alu_zero),
-        .status_flags  (status_flags)
+        .status_flags  (status_flags),
+        .index_inc     (index_inc)
     );
 
     // ============================================================
@@ -272,7 +278,8 @@ module top #(
     data_mem #(
         .MEM_SIZE  (DATA_MEM_SIZE),
         .ADDR_WIDTH(32),
-        .DATA_WIDTH(32)
+        .DATA_WIDTH(32),
+        .INIT_FILE (DATA_FILE)
     ) dmem (
         .clk       (clk),
         .reset     (reset),

@@ -160,7 +160,9 @@ always @(*) begin
             // [31:27 opcode][26:23 rd][22:19 rs1][18:15 rs2][14:11 rs3][10:0 imm(11 bits)]
             //--------------------------------
             5'b10011, // BEQADD
-            5'b10100: begin //XORTEA
+            5'b10100, // XORTEA
+            5'b10111, // ADDK
+            5'b11000: begin // SUBK
 
                 format_type = FORMAT_T;
 

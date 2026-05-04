@@ -6,6 +6,11 @@ module alu (
     input  logic [31:0] c,      
     input  logic [3:0]  alu_op, 
     input  logic        auth_in,    // Authentication bit from status register
+    
+    // TEA / Vault extensions
+    input  logic [31:0] k0, k1, k2, k3,
+    input  logic [1:0]  imm_idx,    // Seleccionador de llave (bits del inmediato)
+
     output logic [31:0] result,
     output logic [5:0]  flags,
     output logic        illegal_op  // High if a privileged op is attempted without AUTH
@@ -30,6 +35,20 @@ module alu (
     localparam ALU_AND    = 4'd8;
     localparam ALU_XORTEA = 4'd10;
     localparam ALU_BEQADD = 4'd11;
+    localparam ALU_ADDK   = 4'd12;
+    localparam ALU_SUBK   = 4'd13;
+
+    // Selector de llave segura
+    logic [31:0] selected_key;
+    always_comb begin
+        case (imm_idx)
+            2'd0: selected_key = k0;
+            2'd1: selected_key = k1;
+            2'd2: selected_key = k2;
+            2'd3: selected_key = k3;
+            default: selected_key = 32'b0;
+        endcase
+    end
 
     always_comb begin
         result = 32'b0;
@@ -51,9 +70,10 @@ module alu (
             ALU_SRL:    result = a >> b[4:0];
             ALU_SLL:    result = a << b[4:0];
             ALU_MUL:    result = a * b;
-            ALU_MOV:    result = b; // b = sign-extended immediate when use_imm=1
+            ALU_MOV:    result = b;
             ALU_AND:    result = a & b;
-            ALU_XORTEA: begin // XORTEA (Privileged)
+            
+            ALU_XORTEA: begin // Triple XOR (Privileged)
                 if (auth_in) begin
                     result = a ^ b ^ c;
                 end else begin
@@ -61,19 +81,39 @@ module alu (
                     illegal_op = 1'b1;
                 end
             end
-            ALU_BEQADD: begin // BEQADD logic (Privileged)
+            
+            ALU_BEQADD: begin // Increment index (Privileged)
                 if (auth_in) begin
-                    result = c + 1;
+                    result = a + 1; // Incrementa el registro rs1
                 end else begin
                     result = 32'b0;
                     illegal_op = 1'b1;
                 end
             end
+
+            ALU_ADDK: begin // Add with Vault Key (Privileged)
+                if (auth_in) begin
+                    result = a + selected_key;
+                end else begin
+                    result = 32'b0;
+                    illegal_op = 1'b1;
+                end
+            end
+
+            ALU_SUBK: begin // Sub with Vault Key (Privileged)
+                if (auth_in) begin
+                    result = a - selected_key;
+                end else begin
+                    result = 32'b0;
+                    illegal_op = 1'b1;
+                end
+            end
+
             default: result = 32'b0;
         endcase
     end
 
-    assign z = (alu_op == 4'b1011) ? (a == b) : (result == 32'b0);
+    assign z = (alu_op == ALU_BEQADD) ? (a == b) : (result == 32'b0);
     assign n = res_sign;
     
     assign flags = {2'b0, v, carry, n, z};

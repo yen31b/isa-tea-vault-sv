@@ -57,6 +57,8 @@ module control_unit (
     localparam OP_XORTEA  = 5'b10100;
     localparam OP_SRLI    = 5'b10101;
     localparam OP_SLLI    = 5'b10110;
+    localparam OP_ADDK    = 5'b10111;
+    localparam OP_SUBK    = 5'b11000;
     localparam OP_NOP     = 5'b11111;
 
     // -----------------------------
@@ -73,6 +75,8 @@ module control_unit (
     localparam ALU_AND = 4'd8;
     localparam ALU_XORTEA = 4'd10; // XOR de 3 operandos (rd = rs1 ^ rs2 ^ rs3)
     localparam ALU_BEQADD = 4'd11; // Branch + incremento de índice
+    localparam ALU_ADDK   = 4'd12; // Suma con llave de bóveda
+    localparam ALU_SUBK   = 4'd13; // Resta con llave de bóveda
 
     always_comb begin
 
@@ -241,7 +245,8 @@ module control_unit (
                     branch       = 1'b1;
                     branch_taken = zero_flag;
                     index_inc    = 1'b1;
-                    alu_op       = ALU_SUB;
+                    reg_write    = 1'b1;     // Activar escritura para incrementar el índice
+                    alu_op       = ALU_BEQADD;
                 end
                 else begin
                     illegal_access = 1'b1;
@@ -254,6 +259,30 @@ module control_unit (
                     tea_enable = 1'b1;
                     reg_write  = 1'b1;
                     alu_op     = ALU_XORTEA; // rd = rs1 ^ rs2 ^ rs3
+                end
+                else begin
+                    illegal_access = 1'b1;
+                end
+            end
+
+            OP_ADDK: begin
+                privileged_instr = 1'b1;
+                if (auth_status) begin
+                    tea_enable = 1'b1;
+                    reg_write  = 1'b1;
+                    alu_op     = ALU_ADDK;
+                end
+                else begin
+                    illegal_access = 1'b1;
+                end
+            end
+
+            OP_SUBK: begin
+                privileged_instr = 1'b1;
+                if (auth_status) begin
+                    tea_enable = 1'b1;
+                    reg_write  = 1'b1;
+                    alu_op     = ALU_SUBK;
                 end
                 else begin
                     illegal_access = 1'b1;

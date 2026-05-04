@@ -1,0 +1,21 @@
+// Datos de prueba para verificar inyeccion en RAM (1 byte por linea)
+// Direccion 0-3: 0x44332211
+11
+22
+33
+44
+// Direccion 4-7: 0x88776655
+55
+66
+77
+88
+// Direccion 8-11: 0xCCBBAA99
+99
+AA
+BB
+CC
+// Direccion 12-15: 0x00FFEEDD
+DD
+EE
+FF
+00

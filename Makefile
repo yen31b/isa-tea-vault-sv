@@ -9,7 +9,7 @@
 #   make tb_fetch         → solo instruction_fetch 
 #   make tb_integration → integración P1 + P3
 #   make tb_alu         → solo ALU — pendiente P2
-#   make tb_tea         → solo TEA — pendiente P4
+#   make tb_tea         → prueba de encriptación y descifrado TEA real
 #   make tb_top         → sistema completo — pendiente todos
 #   make wave_dmem      → abre GTKWave para data_mem
 #   make wave_vault     → abre GTKWave para key_vault
@@ -25,6 +25,7 @@ IV    = iverilog
 VVP   = vvp
 WAVE  = gtkwave
 FLAGS = -g2012
+PYTHON = python3
 
 # ---- Directorios ----
 SRC = src
@@ -50,7 +51,7 @@ BIN_TOP    = sim_top
 # all: setup tb_dmem tb_vault tb_alu tb_tea tb_integration tb_top
 # ============================================================
 .PHONY: all
-all: setup tb_dmem tb_vault tb_auth tb_ctrl tb_decode tb_fetch tb_integration
+all: setup tb_dmem tb_vault tb_auth tb_ctrl tb_decode tb_fetch tb_integration tb_tea
 
 # ============================================================
 # SETUP — crear directorios necesarios
@@ -165,14 +166,26 @@ tb_alu: setup
 	$(VVP) $(BIN_ALU)
 
 # ============================================================
-# TEA unit 
+# TEA Full Verification (Encrypt + Decrypt)
 # ============================================================
 .PHONY: tb_tea
 tb_tea: setup
-	@echo "[tb_tea] Compilando..."
+	@echo "[tb_tea] Ensamblando programa TEA..."
+	@$(PYTHON) tools/asm.py asm_ISA/tea_full.asm > tb/tea_encrypt.mem
+	@echo "[tb_tea] Compilando procesador..."
 	$(IV) $(FLAGS) -o $(BIN_TEA) \
-		$(SRC)/tea_unit.sv \
-		$(TB)/tb_tea.sv
+		$(SRC)/status_reg.sv \
+		$(SRC)/alu.sv \
+		$(SRC)/register_file.sv \
+		$(SRC)/datapath.sv \
+		$(SRC)/instruction_fetch.sv \
+		$(SRC)/instruction_decode.sv \
+		$(SRC)/control_unit.sv \
+		$(SRC)/auth_unit.sv \
+		$(SRC)/data_mem.sv \
+		$(SRC)/key_vault.sv \
+		$(SRC)/top.sv \
+		$(TB)/tb_tea_system.sv
 	@echo "[tb_tea] Simulando..."
 	$(VVP) $(BIN_TEA)
 
@@ -197,6 +210,28 @@ tb_top: setup
 		$(TB)/tb_top.sv
 	@echo "[tb_top] Simulando..."
 	$(VVP) $(BIN_TOP)
+
+# ============================================================
+# VERIFICACION INTEGRAL
+# ============================================================
+.PHONY: tb_verify
+tb_verify: setup
+	@echo "[tb_verify] Compilando..."
+	$(IV) $(FLAGS) -o sim_verify \
+		$(SRC)/status_reg.sv \
+		$(SRC)/alu.sv \
+		$(SRC)/register_file.sv \
+		$(SRC)/datapath.sv \
+		$(SRC)/instruction_fetch.sv \
+		$(SRC)/instruction_decode.sv \
+		$(SRC)/control_unit.sv \
+		$(SRC)/auth_unit.sv \
+		$(SRC)/data_mem.sv \
+		$(SRC)/key_vault.sv \
+		$(SRC)/top.sv \
+		$(TB)/tb_verify_system.sv
+	@echo "[tb_verify] Simulando..."
+	$(VVP) sim_verify
 
 # ============================================================
 # GTKWAVE — visualizar señales
@@ -229,6 +264,10 @@ wave_fetch:
 .PHONY: wave_int
 wave_int:
 	$(WAVE) $(VCD)/tb_integration_cpu_vault.vcd &
+
+.PHONY: wave_tea
+wave_tea:
+	$(WAVE) $(VCD)/tb_tea_system.vcd &
 
 .PHONY: wave_top
 wave_top:

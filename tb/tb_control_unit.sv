@@ -543,22 +543,22 @@ module tb_control_unit;
         check_control("BEQADD autenticado zero=1",
             OP_BEQADD, 1'b1, 1'b1,
             expected(
-                0, 0, 0, 0, 0,
+                1, 0, 0, 0, 0,
                 1, 0, 1, 0,
                 0, 0, 0, 0, 0,
                 0, 1, 0, 1,
-                ALU_SUB
+                ALU_BEQADD
             )
         );
 
         check_control("BEQADD autenticado zero=0",
             OP_BEQADD, 1'b0, 1'b1,
             expected(
-                0, 0, 0, 0, 0,
+                1, 0, 0, 0, 0,
                 1, 0, 0, 0,
                 0, 0, 0, 0, 0,
                 0, 1, 0, 1,
-                ALU_SUB
+                ALU_BEQADD
             )
         );
 

@@ -46,10 +46,12 @@ The ISA uses 32-bit fixed-length instructions. There are 6 primary formats. Regi
 | **VCLR** | `10000` | `0x10` | K | Vault Clear | `Clear Vault[slot]` (Priv) |
 | **VAUTH** | `10001` | `0x11` | K | Authenticate | `Authenticate with Reg[rs1]` |
 | **VLOGOUT** | `10010` | `0x12` | K | Logout | `Clear Auth Status` |
-| **BEQADD** | `10011` | `0x13` | T | TEA Loop Branch | `if(rs1==rs2) { PC+=imm; rs3++ }` (Priv) |
-| **XORTEA** | `10100` | `0x14` | T | TEA Round XOR | `Reg[rd] = rs1 ^ rs2 ^ rs3` (Priv) |
+| **BEQADD** | `10011` | `0x13` | T | TEA Loop Branch | `Reg[rs1] = Reg[rs1]+1; if(R[rs1]==R[rs2]) PC += imm` (Priv) |
+| **XORTEA** | `10100` | `0x14` | T | TEA Triple XOR | `Reg[rd] = Reg[rs1] ^ Reg[rs2] ^ Reg[rs3]` (Priv) |
 | **SRLI** | `10101` | `0x15` | I | SRL Immediate | `Reg[rd] = Reg[rs1] >> imm` |
 | **SLLI** | `10110` | `0x16` | I | SLL Immediate | `Reg[rd] = Reg[rs1] << imm` |
+| **ADDK** | `10111` | `0x17` | T | Add with Key | `Reg[rd] = Reg[rs1] + k_reg[imm[1:0]]` (Priv) |
+| **SUBK** | `11000` | `0x18` | T | Sub with Key | `Reg[rd] = Reg[rs1] - k_reg[imm[1:0]]` (Priv) |
 | **NOP** | `11111` | `0x1F` | R | No Operation | No-op |
 
 ---
@@ -101,8 +103,9 @@ The Vault contains multiple **slots**, each holding a cryptographic key divided 
 - `word`: Index of the 32-bit word within the key. Encoded with 3 bits.
 
 ### TEA Instructions
-- **XORTEA**: Performs a three-way XOR, a common operation in TEA rounds to merge state, keys, and constants.
-- **BEQADD**: Optimized for TEA loops. Checks if a loop counter has reached a limit and increments an index register in a single cycle if the branch is taken.
+- **ADDK / SUBK**: Performs arithmetic with keys directly from the secure vault (`k_reg0-3`). The key index (0-3) is specified in the lowest 2 bits of the immediate field.
+- **XORTEA**: Performs a three-way XOR (`rd = rs1 ^ rs2 ^ rs3`) in a single cycle. Optimized for the core TEA mixing function.
+- **BEQADD**: Optimized for TEA loops. Increments the index register (`rs1`) and branches to the target if the updated index equals `rs2`.
 
 ---
 
