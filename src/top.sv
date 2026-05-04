@@ -91,7 +91,7 @@ module top #(
 
     // --- Key Vault ---
     logic        vault_exc;
-    logic [31:0] k_reg [0:3];
+    logic [31:0] k_reg0, k_reg1, k_reg2, k_reg3;
 
     // --- Datapath ---
     logic [31:0] alu_result;
@@ -224,7 +224,10 @@ module top #(
         .word             (palabra),       // índice de palabra dentro del slot
         .rs1_data         (reg_data_1),    // dato fuente para VSTR
         .exc_out          (vault_exc),
-        .k_reg            (k_reg)
+        .k_reg0           (k_reg0),
+        .k_reg1           (k_reg1),
+        .k_reg2           (k_reg2),
+        .k_reg3           (k_reg3)
     );
 
     // ============================================================

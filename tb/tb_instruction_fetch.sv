@@ -84,7 +84,7 @@ module tb_instruction_fetch;
         // -----------------------------
         reset = 1;
         @(posedge clk);
-        check_state("RESET lleva PC a 0", 32'd0, 32'h23280000);
+        check_state("RESET lleva PC a 0", 32'd0, 32'h6000a5a5);
 
         reset = 0;
 
@@ -92,13 +92,13 @@ module tb_instruction_fetch;
         // TEST 2: Avance secuencial
         // -----------------------------
         @(posedge clk);
-        check_state("PC avanza a 4", 32'd4, 32'hac400019);
+        check_state("PC avanza a 4", 32'd4, 32'h64000010);
 
         @(posedge clk);
-        check_state("PC avanza a 8", 32'd8, 32'h05c00064);
+        check_state("PC avanza a 8", 32'd8, 32'h48100000);
 
         @(posedge clk);
-        check_state("PC avanza a 12", 32'd12, 32'h11e0002c);
+        check_state("PC avanza a 12", 32'd12, 32'h6100a5a5);
 
         // -----------------------------
         // TEST 3: Branch tomado
@@ -111,7 +111,7 @@ module tb_instruction_fetch;
         jump = 0;
 
         @(posedge clk);
-        check_state("Branch tomado hacia PC=20", 32'd20, 32'h7234000c);
+        check_state("Branch tomado hacia PC=20", 32'd20, 32'h88000000);
 
         branch_taken = 0;
 
@@ -121,7 +121,7 @@ module tb_instruction_fetch;
         // instr_mem[6] = a14e000a
         // -----------------------------
         @(posedge clk);
-        check_state("Despues del branch avanza a PC=24", 32'd24, 32'ha14e000a);
+        check_state("Despues del branch avanza a PC=24", 32'd24, 32'h70000000);
 
         // -----------------------------
         // TEST 5: Jump incondicional
@@ -134,7 +134,7 @@ module tb_instruction_fetch;
         branch_taken = 0;
 
         @(posedge clk);
-        check_state("Jump hacia PC=28", 32'd28, 32'ha14e7fff);
+        check_state("Jump hacia PC=28", 32'd28, 32'h78000000);
 
         jump = 0;
 
@@ -153,7 +153,7 @@ module tb_instruction_fetch;
         jump_target = 32'd32;
 
         @(posedge clk);
-        check_state("Jump tiene prioridad sobre branch", 32'd32, 32'hf8000000);
+        check_state("Jump tiene prioridad sobre branch", 32'd32, 32'h90000000);
 
         branch_taken = 0;
         jump = 0;
@@ -168,7 +168,7 @@ module tb_instruction_fetch;
         jump_target = 32'd28;
 
         @(posedge clk);
-        check_state("Reset tiene prioridad sobre jump y branch", 32'd0, 32'h23280000);
+        check_state("Reset tiene prioridad sobre jump y branch", 32'd0, 32'h6000a5a5);
 
         reset = 0;
         branch_taken = 0;

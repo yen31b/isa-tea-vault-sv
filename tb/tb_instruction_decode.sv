@@ -7,10 +7,10 @@ module tb_instruction_decode;
 
     // Salidas del DUT que queremos probar 
     logic [4:0]  opcode;
-    logic [2:0]  rd;
-    logic [2:0]  rs1;
-    logic [2:0]  rs2;
-    logic [2:0]  rs3;
+    logic [4:0]  rd;
+    logic [4:0]  rs1;
+    logic [4:0]  rs2;
+    logic [4:0]  rs3;
     logic [20:0] imm;
     logic [2:0]  format_type;
     logic [2:0]  slot;
@@ -114,10 +114,10 @@ module tb_instruction_decode;
         input string name,
         input logic [31:0] instr_i, // recibe la instruccion que vamos a probar
         input logic [4:0]  exp_opcode, //valores que esperamos salgan del decoder
-        input logic [2:0]  exp_rd,
-        input logic [2:0]  exp_rs1,
-        input logic [2:0]  exp_rs2,
-        input logic [2:0]  exp_rs3,
+        input logic [4:0]  exp_rd,
+        input logic [4:0]  exp_rs1,
+        input logic [4:0]  exp_rs2,
+        input logic [4:0]  exp_rs3,
         input logic [20:0] exp_imm,
         input logic [2:0]  exp_format_type,
         input logic [2:0]  exp_slot,

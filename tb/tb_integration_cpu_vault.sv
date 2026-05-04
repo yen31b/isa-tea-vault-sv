@@ -39,7 +39,7 @@ module tb_integration_cpu_vault;
     // ---- Señales instruction_decode ----
     logic [31:0] instruction;
     logic [4:0]  opcode;
-    logic [2:0]  rd, rs1, rs2, rs3;
+    logic [4:0]  rd, rs1, rs2, rs3;
     logic [2:0]  slot, palabra;
     logic [20:0] imm;
     logic [2:0]  format_type;
@@ -64,7 +64,7 @@ module tb_integration_cpu_vault;
 
     // ---- Señales key_vault ----
     logic        exc_out;
-    logic [31:0] k_reg [0:3];
+    logic [31:0] k_reg0, k_reg1, k_reg2, k_reg3;
 
     // ---- Stub: rs1_data (simula register_file de P2) ----
     logic [31:0] rs1_data;
@@ -149,7 +149,10 @@ module tb_integration_cpu_vault;
         .word           (palabra),
         .rs1_data          (rs1_data),
         .exc_out           (exc_out),
-        .k_reg             (k_reg)
+        .k_reg0            (k_reg0),
+        .k_reg1            (k_reg1),
+        .k_reg2            (k_reg2),
+        .k_reg3            (k_reg3)
     );
 
     // ==========================================================
@@ -270,7 +273,7 @@ module tb_integration_cpu_vault;
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status tras VLOGOUT");
 
-        rs1_data = 32'hBADBADBAD; // password incorrecto
+        rs1_data = 32'hBADBADBA; // password incorrecto
         ejecutar({OP_VAUTH, 3'b000, 3'b000, 3'b001, 18'b0}, "VAUTH FAIL");
         @(posedge clk); #1;
         check(auth_status, 1'b0, "auth_status=0");
@@ -317,10 +320,10 @@ module tb_integration_cpu_vault;
         ejecutar({OP_VLD, 3'b000, 3'b000, 3'b000, 18'b0}, "VLD");
         @(posedge clk); #1;
         check(vault_load_secure, 1'b1, "vault_load_secure");
-        if (k_reg[0] === 32'hA1B2C3D4)
-            $display("    \033[32m[PASS]\033[0m k_reg[0]=0x%08h (llave cargada para TEA)", k_reg[0]);
+        if (k_reg0 === 32'hA1B2C3D4)
+            $display("    \033[32m[PASS]\033[0m k_reg[0]=0x%08h (llave cargada para TEA)", k_reg0);
         else
-            $display("    \033[31m[FAIL]\033[0m k_reg[0]=0x%08h (esperado 0xA1B2C3D4)", k_reg[0]);
+            $display("    \033[31m[FAIL]\033[0m k_reg[0]=0x%08h (esperado 0xA1B2C3D4)", k_reg0);
 
         // --------------------------------------------------
         // TEST 8: VCLR — borrar slot

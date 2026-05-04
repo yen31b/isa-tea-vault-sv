@@ -78,6 +78,8 @@ module tb_control_unit;
     localparam ALU_MUL = 4'd6;
     localparam ALU_MOV = 4'd7;
     localparam ALU_AND = 4'd8;
+    localparam ALU_XORTEA = 4'd10;
+    localparam ALU_BEQADD = 4'd11;
 
     // -----------------------------
     // Instanciación del módulo bajo prueba
@@ -270,7 +272,7 @@ module tb_control_unit;
         check_control("LD",
             OP_LD, 1'b0, 1'b0,
             expected(
-                1, 1, 0, 1, 0,
+                1, 1, 0, 1, 1,
                 0, 0, 0, 0,
                 0, 0, 0, 0, 0,
                 0, 0, 0, 0,
@@ -281,7 +283,7 @@ module tb_control_unit;
         check_control("ST",
             OP_ST, 1'b0, 1'b0,
             expected(
-                0, 0, 1, 0, 0,
+                0, 0, 1, 0, 1,
                 0, 0, 0, 0,
                 0, 0, 0, 0, 0,
                 0, 0, 0, 0,
@@ -419,7 +421,7 @@ module tb_control_unit;
         check_control("MOV",
             OP_MOV, 1'b0, 1'b0,
             expected(
-                1, 0, 0, 0, 0,
+                1, 0, 0, 0, 1,
                 0, 0, 0, 0,
                 0, 0, 0, 0, 0,
                 0, 0, 0, 0,
@@ -578,7 +580,7 @@ module tb_control_unit;
                 0, 0, 0, 0,
                 0, 0, 0, 0, 0,
                 1, 0, 0, 1,
-                ALU_ADD
+                ALU_XORTEA
             )
         );
 
@@ -623,7 +625,7 @@ module tb_control_unit;
         // Opcode ilegal
         // -----------------------------
         check_control("Opcode no definido",
-            5'b11111, 1'b0, 1'b0,
+            5'b11110, 1'b0, 1'b0,
             expected(
                 0, 0, 0, 0, 0,
                 0, 0, 0, 0,

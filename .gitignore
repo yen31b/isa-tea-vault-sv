@@ -7,3 +7,5 @@ sim_integration
 sim_top
 *.log
 espec_proyecto.md
+/.agents
+/graphify-out

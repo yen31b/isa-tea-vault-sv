@@ -21,7 +21,7 @@ module tb_key_vault;
     logic [2:0]  slot, word;
     logic [31:0] rs1_data;
     logic        exc_out;
-    logic [31:0] k_reg [0:3];
+    logic [31:0] k_reg0, k_reg1, k_reg2, k_reg3;
 
     // Instancia
     key_vault dut (
@@ -35,7 +35,10 @@ module tb_key_vault;
         .word            (word),
         .rs1_data           (rs1_data),
         .exc_out            (exc_out),
-        .k_reg              (k_reg)
+        .k_reg0             (k_reg0),
+        .k_reg1             (k_reg1),
+        .k_reg2             (k_reg2),
+        .k_reg3             (k_reg3)
     );
 
     initial clk = 0;
@@ -116,10 +119,10 @@ module tb_key_vault;
         slot = 3'd0; word = 3'd1;
         pulso(1);  // vault_load_secure
 
-        if (k_reg[1] === 32'hE5F60718)
-            $display("\033[32m  PASS\033[0m k_reg[1]=0x%08h (cargado correctamente)", k_reg[1]);
+        if (k_reg1 === 32'hE5F60718)
+            $display("\033[32m  PASS\033[0m k_reg[1]=0x%08h (cargado correctamente)", k_reg1);
         else
-            $display("\033[31m  FAIL\033[0m k_reg[1]=0x%08h (esperado 0xE5F60718)", k_reg[1]);
+            $display("\033[31m  FAIL\033[0m k_reg[1]=0x%08h (esperado 0xE5F60718)", k_reg1);
 
         
         // TEST 4: VLD sin auth → excepción, k_reg no cambia
@@ -135,10 +138,10 @@ module tb_key_vault;
             $display("\033[31m  FAIL\033[0m exc_out=0 (debería haber excepción)");
 
         // k_reg[0] no debería haber cambiado (sigue en 0 del reset)
-        if (k_reg[0] === 32'h0)
+        if (k_reg0 === 32'h0)
             $display("\033[32m  PASS\033[0m k_reg[0] no modificado (sigue en 0)");
         else
-            $display("\033[31m  FAIL\033[0m k_reg[0]=0x%08h (fue modificado sin auth)", k_reg[0]);
+            $display("\033[31m  FAIL\033[0m k_reg[0]=0x%08h (fue modificado sin auth)", k_reg0);
 
         
         // TEST 5: VCLR con auth=1 → slot borrado
@@ -203,12 +206,12 @@ module tb_key_vault;
         word = 3'd2; pulso(1);
         word = 3'd3; pulso(1);
 
-        if (k_reg[0]===32'hA1B2C3D4 && k_reg[1]===32'hE5F60718 &&
-            k_reg[2]===32'h293A4B5C && k_reg[3]===32'h6D7E8F90)
+        if (k_reg0===32'hA1B2C3D4 && k_reg1===32'hE5F60718 &&
+            k_reg2===32'h293A4B5C && k_reg3===32'h6D7E8F90)
             $display("\033[32m  PASS\033[0m llave 128 bits cargada correctamente en k_reg[0..3]");
         else
             $display("\033[31m  FAIL\033[0m k_reg=[%h, %h, %h, %h]",
-                   k_reg[0], k_reg[1], k_reg[2], k_reg[3]);
+                   k_reg0, k_reg1, k_reg2, k_reg3);
 
         
         // TEST 8: Sin interferencia entre slots

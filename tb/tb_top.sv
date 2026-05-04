@@ -132,7 +132,13 @@ module tb_top;
     );
         logic [31:0] got;
         begin
-            got = dut.k_reg[idx_k];
+            case (idx_k)
+                0: got = dut.k_reg0;
+                1: got = dut.k_reg1;
+                2: got = dut.k_reg2;
+                3: got = dut.k_reg3;
+                default: got = 32'hxxxxxxxx;
+            endcase
             if (got !== expected) begin
                 $display("[ERROR] %s: k_reg[%0d] esperado=0x%08h obtenido=0x%08h",
                          tag, idx_k, expected, got);
@@ -153,7 +159,13 @@ module tb_top;
         logic [31:0] k0_word;
         begin
             vault_word = dut.vault_inst.vault[slot_idx][word_idx];
-            k0_word    = dut.k_reg[word_idx];
+            case (word_idx)
+                0: k0_word = dut.k_reg0;
+                1: k0_word = dut.k_reg1;
+                2: k0_word = dut.k_reg2;
+                3: k0_word = dut.k_reg3;
+                default: k0_word = 32'hxxxxxxxx;
+            endcase
             $display("[TRACE] %s: slot=%0d word=%0d rs1=0x%08h vault=0x%08h k_reg[%0d]=0x%08h auth=%0b denied=%0b",
                      tag, slot_idx, word_idx, src_value, vault_word, word_idx, k0_word,
                      auth_status_out, access_denied_out);
@@ -262,10 +274,18 @@ module tb_top;
                          auth_status_out, access_denied_out);
             end
             if (dut.vault_load_secure) begin
+                logic [31:0] kreg_val;
+                case (dut.palabra)
+                    3'd0: kreg_val = dut.k_reg0;
+                    3'd1: kreg_val = dut.k_reg1;
+                    3'd2: kreg_val = dut.k_reg2;
+                    3'd3: kreg_val = dut.k_reg3;
+                    default: kreg_val = 32'hxxxxxxxx;
+                endcase
                 $display("[MONITOR] VLD  pc=0x%08h slot=%0d word=%0d vault=0x%08h k_reg[%0d]=0x%08h auth=%0b denied=%0b",
                          pc_out, dut.slot, dut.palabra,
                          dut.vault_inst.vault[dut.slot][dut.palabra],
-                         dut.palabra, dut.k_reg[dut.palabra],
+                         dut.palabra, kreg_val,
                          auth_status_out, access_denied_out);
             end
             if (dut.vault_clear) begin

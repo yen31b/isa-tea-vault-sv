@@ -98,15 +98,19 @@ rd  = {2'b00, instruction[26:24]};
 				 //--------------------------------
             // FORMATO M
             //--------------------------------
-            5'b00000, // LD
-            5'b00001: begin // ST
-
+            5'b00000: begin // LD
                 format_type = FORMAT_M;
-
-               rd  = {2'b00, instruction[26:24]}; // LD: rd destino
-               rs2 = {2'b00, instruction[26:24]}; // ST: rs2 fuente a guardar
-                rs1 = {2'b00, instruction[23:21]};  // registro base
-                imm = instruction[20:0];   //offset
+                rd  = {2'b00, instruction[26:24]};
+                rs1 = {2'b00, instruction[23:21]};
+                imm = instruction[20:0];
+                rs2 = 5'd0;
+            end
+            5'b00001: begin // ST
+                format_type = FORMAT_M;
+                rs2 = {2'b00, instruction[26:24]};
+                rs1 = {2'b00, instruction[23:21]};
+                imm = instruction[20:0];
+                rd  = 5'd0;
             end
 				
 				

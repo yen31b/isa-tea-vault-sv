@@ -1,0 +1,34 @@
+// Programa de prueba para autenticacion (VAUTH, VLOGOUT, VSTR, VLD, VCLR)
+//  0: MOV r0, #0xA5A5        ; r0 = 0x0000A5A5
+//  1: MOV r4, #16            ; r4 = 16  (shift amount)
+//  2: SLL r0, r0, r4         ; r0 = 0xA5A50000
+//  3: MOV r1, #0xA5A5        ; r1 = 0x0000A5A5
+//  4: OR  r0, r0, r1         ; r0 = 0xA5A5A5A5  (password correcto)
+//  5: VAUTH r0               ; autenticar con password correcto -> auth_status=1
+//  6: VSTR slot=0,word=0,r0  ; guardar r0 en vault[0][0] (requiere auth)
+//  7: VLD  slot=0,word=0     ; cargar vault[0][0] en k0  (requiere auth)
+//  8: VLOGOUT                ; cerrar sesion -> auth_status=0
+//  9: MOV r2, #0xDEAD        ; r2 = 0xDEAD  (password incorrecto)
+// 10: VAUTH r2               ; autenticar con password incorrecto -> auth_fail=1
+// 11: VSTR slot=0,word=0,r0  ; intento sin auth -> access_denied=1
+// 12: VAUTH r0               ; re-autenticar con password correcto -> auth_status=1
+// 13: VCLR slot=0            ; borrar slot 0 de boveda  (requiere auth)
+// 14: VLOGOUT                ; cerrar sesion -> auth_status=0
+// 15: NOP                     ; sin efectos, opcode=11111 -> 0xF8000000
+
+6000A5A5
+64000010
+48100000
+6100A5A5
+30040000
+88000000
+70000000
+78000000
+90000000
+6200DEAD
+88080000
+70000000
+88000000
+80000000
+90000000
+F8000000
