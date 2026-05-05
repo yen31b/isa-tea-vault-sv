@@ -5,7 +5,7 @@ Además se utiliza una arquitectura Harvard simplificada, donde la memoria de in
 
 ## Diagrama de bloques del procesador 
 <p align="center">
-  <img src="docs/imagenes/Diagrama_Bloques.png" width="1000"/>
+  <img src="imagenes/Diagrama_Bloques.png" width="1000"/>
 </p>
 
 <p align="center">
