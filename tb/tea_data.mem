@@ -1,0 +1,14 @@
+// Data for TEA test
+@40 // 0x100 in byte address is 0x40 in word address (LD uses byte address but our mem is word?)
+// Wait! data_mem.sv uses byte address for the array index.
+// logic [7:0] ram [MEM_SIZE-1:0];
+// So 0x100 is index 256.
+@100
+67
+45
+23
+01
+EF
+CD
+AB
+89
