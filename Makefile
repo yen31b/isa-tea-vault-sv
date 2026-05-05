@@ -332,6 +332,29 @@ test_poem_decrypt: sim_flow assemble_decrypt
 	@echo "[test] Listo! Revisa decrypted_poem.txt"
 
 # ============================================================
+# IMAGE FLOW: BlueShield.png  (1477 bytes → 1480 padded)
+# ============================================================
+.PHONY: test_img_encrypt
+test_img_encrypt: sim_flow assemble_encrypt
+	@echo "[img] Cargando BlueShield.png..."
+	$(PYTHON) file_loader/load_file.py --input file_loader/BlueShield.png --output data.mem --address 0x1000
+	@echo "[img] Cifrando (limite: 300 000 ciclos)..."
+	$(VVP) $(BIN_FLOW)
+	@echo "[img] Extrayendo imagen cifrada..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 1480 --output encrypted_img.bin
+	@echo "[img] Cifrado guardado en encrypted_img.bin"
+
+.PHONY: test_img_decrypt
+test_img_decrypt: sim_flow assemble_decrypt
+	@echo "[img] Cargando cifrado previo (encrypted_img.bin -> data.mem)..."
+	$(PYTHON) file_loader/load_file.py --input encrypted_img.bin --output data.mem --address 0x1000
+	@echo "[img] Descifrando (limite: 300 000 ciclos)..."
+	$(VVP) $(BIN_FLOW)
+	@echo "[img] Extrayendo imagen recuperada..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 1480 --output decrypted_img.png
+	@echo "[img] Listo! Revisa decrypted_img.png"
+
+# ============================================================
 # GTKWAVE — visualizar señales
 # ============================================================
 .PHONY: wave_dmem
@@ -376,10 +399,20 @@ wave_top:
 # ============================================================
 .PHONY: clean
 clean:
-	@echo "[clean] Eliminando binarios y VCDs..."
-	rm -f $(BIN_DMEM) $(BIN_VAULT) $(BIN_INT) \
-	      $(BIN_ALU) $(BIN_TEA) $(BIN_TOP) \
-	      $(BIN_AUTH) $(BIN_CTRL) $(BIN_DECODE) $(BIN_FETCH)
+	@echo "[clean] === Binarios de simulacion ==="
+	rm -f $(BIN_DMEM) $(BIN_VAULT) $(BIN_AUTH) $(BIN_CTRL) \
+	      $(BIN_DECODE) $(BIN_FETCH) $(BIN_INT) $(BIN_ALU) \
+	      $(BIN_TEA) $(BIN_TOP) $(BIN_PERF) $(BIN_ROUND) $(BIN_FLOW)
+	@echo "[clean] === Binarios .vvp huerfanos (formato antiguo) ==="
+	rm -f compile_test.vvp sim_ctrl_test.vvp sim_decode_test.vvp \
+	      sim_fetch_test.vvp sim_integ_test.vvp sim_regfile_test.vvp
+	@echo "[clean] === Archivos VCD ==="
 	rm -f $(VCD)/*.vcd
-	rm -f tb_program.mem
+	@echo "[clean] === Archivos de programa y datos ==="
+	rm -f program.mem data.mem tb_program.mem
+	@echo "[clean] === Salidas de tests (poema, imagen y otros) ==="
+	rm -f encrypted_poem.bin decrypted_poem.txt
+	rm -f encrypted_img.bin  decrypted_img.png
+	rm -f cifrado.bin
 	@echo "[clean] Listo"
+
