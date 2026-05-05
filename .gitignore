@@ -14,3 +14,5 @@ sim_decode
 sim_dmem
 sim_fetch
 sim_vault
+sim_perf
+sim_roundtrip
