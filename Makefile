@@ -44,6 +44,8 @@ BIN_INT    = sim_integration
 BIN_ALU    = sim_alu
 BIN_TEA    = sim_tea
 BIN_TOP    = sim_top
+BIN_PERF   = sim_perf
+BIN_ROUND  = sim_roundtrip
 
 # ============================================================
 # TARGET PRINCIPAL
@@ -210,6 +212,50 @@ tb_top: setup
 		$(TB)/tb_top.sv
 	@echo "[tb_top] Simulando..."
 	$(VVP) $(BIN_TOP)
+
+# ============================================================
+# PERFORMANCE COMPARISON
+# ============================================================
+.PHONY: tb_perf
+tb_perf: setup
+	@echo "[tb_perf] Compilando comparativa de rendimiento..."
+	$(IV) $(FLAGS) -o $(BIN_PERF) \
+		$(SRC)/status_reg.sv \
+		$(SRC)/alu.sv \
+		$(SRC)/register_file.sv \
+		$(SRC)/datapath.sv \
+		$(SRC)/instruction_fetch.sv \
+		$(SRC)/instruction_decode.sv \
+		$(SRC)/control_unit.sv \
+		$(SRC)/auth_unit.sv \
+		$(SRC)/data_mem.sv \
+		$(SRC)/key_vault.sv \
+		$(SRC)/top.sv \
+		$(TB)/tb_performance_comp.sv
+	@echo "[tb_perf] Simulando..."
+	$(VVP) $(BIN_PERF)
+
+# ============================================================
+# ROUNDTRIP VERIFICATION (Encrypt + Decrypt = Original)
+# ============================================================
+.PHONY: tb_roundtrip
+tb_roundtrip: setup
+	@echo "[tb_roundtrip] Compilando prueba de fuego..."
+	$(IV) $(FLAGS) -o $(BIN_ROUND) \
+		$(SRC)/status_reg.sv \
+		$(SRC)/alu.sv \
+		$(SRC)/register_file.sv \
+		$(SRC)/datapath.sv \
+		$(SRC)/instruction_fetch.sv \
+		$(SRC)/instruction_decode.sv \
+		$(SRC)/control_unit.sv \
+		$(SRC)/auth_unit.sv \
+		$(SRC)/data_mem.sv \
+		$(SRC)/key_vault.sv \
+		$(SRC)/top.sv \
+		$(TB)/tb_roundtrip.sv
+	@echo "[tb_roundtrip] Simulando..."
+	$(VVP) $(BIN_ROUND)
 
 # ============================================================
 # VERIFICACION INTEGRAL

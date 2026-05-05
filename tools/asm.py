@@ -116,8 +116,6 @@ def assemble(line, pc):
                 rs1 = reg(parts[1])
                 rs2 = reg(parts[2])
                 imm = int(parts[3], 0) & 0x7FF
-                instr |= (rs1 & 0xF) << 23 # Wait! rs1 is used as rd too
-                instr |= (rs1 & 0xF) << 22 # Wait! instruction_decode mapping
                 # BEQADD: rd=26:23, rs1=22:19, rs2=18:15, imm=10:0
                 instr |= (rs1 & 0xF) << 23 # rd = rs1
                 instr |= (rs1 & 0xF) << 19 # rs1
