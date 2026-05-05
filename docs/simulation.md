@@ -5,6 +5,9 @@
 
 **Señales monitoreadas:** `clk`, `reset`, `jump`, `branch_taken`, `branch_target`, `jump_target`, `pc`, `instruction`
 
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/inst-fetch.PNG)
+
+
 **Comportamiento observado:**
 - **Reset (0–10 ns):** `reset`=1, `pc`=0, `instruction`=0x6000A5A5 (palabra precargada)
 - **Secuencial (10–30 ns):** Sin saltos, `pc` avanza: 0→4→8→12, cada instrucción cambia según memoria
@@ -21,6 +24,9 @@
 ##### Instruction Decode
 
 **Señales monitoreadas:** `instruction`, `opcode`, `format_type`, `rd`, `rs1`, `rs2`, `rs3`, `imm`, `slot`, `palabra`, `reservado`
+
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/inst-decode.PNG)
+
 
 **Comportamiento observado (ciclo = 1 ns):**
 - **TEST 1 (0 ns) — ADD (FORMAT_R):** opcode=0x04, rd=3, rs1=1, rs2=2, imm=0, format_type=000
@@ -39,6 +45,8 @@
 
 **Señales monitoreadas:** `opcode`, `zero_flag`, `auth_status` (entradas), `reg_write`, `mem_read`, `mem_write`, `branch`, `branch_taken`, `vault_write`, `tea_enable`, `illegal_access`, `alu_op` (salidas)
 
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/control-unit.PNG)
+
 **Comportamiento observado (ciclo = 1 ns):**
 - **0–2 ns — LD/ST:** reg_write+mem_read+mem_to_reg encendidos para LD; solo mem_write para ST
 - **2–4 ns — BEQ:** branch=1, branch_taken refleja zero_flag (0 → tomado; 1 → no tomado)
@@ -56,6 +64,14 @@
 
 **Señales monitoreadas:** `clk`, `reset`, `mem_read`, `mem_write`, `address`, `write_data`, `read_data`
 
+Parcial:
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/dmem1.PNG)
+
+Completo:
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/dmem.PNG)
+
+
+
 **Comportamiento observado:**
 - **Reset (0–5 ns):** `reset`=1, todos en 0
 - **TEST 1–3 — ST+LD (10–30 ns):** Patrón repetido:
@@ -71,6 +87,9 @@
 ##### Key Vault
 
 **Señales monitoreadas:** `clk`, `rst`, `auth_status`, `vault_write/load_secure/clear`, `slot`, `word`, `rs1_data`, `exc_out`, `k_reg0..3`
+
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/vault.PNG)
+
 
 **Comportamiento observado:**
 - **TEST 1 — VSTR auth=1 (~10 ns):** vault_write pulso, rs1_data=0xA1B2C3D4, exc_out=0, dato escrito internamente
@@ -89,6 +108,22 @@
 
 **Señales monitoreadas:** `clk`, `reset`, `auth_check`, `auth_clear`, `privileged_instr`, `auth_value`, `auth_status`, `auth_fail`, `access_denied`, `auth_timer`
 
+Se muestran por partes para visualizar los valores:
+
+![Resultados wave de Auth Unit 1](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/auth-unit1.PNG)
+
+![Resultados wave de Auth Unit 2](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/auth-unit2.PNG)
+
+![Resultados wave de Auth Unit 3](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/auth-unit3.PNG)
+
+![Resultados wave de Auth Unit 4](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/auth-unit4.PNG)
+
+![Resultados wave de Auth Unit 5](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/auth-unit5.PNG)
+
+Resultado completo:
+
+![Resultados wave de Auth Unit completo](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/auth-unitfull.PNG)
+
 **Comportamiento observado (ciclo = 10 ns, timer en hexadecimal):**
 - **TEST 1 — Reset (0–20 ns):** Todos en 0
 - **TEST 2 — VAUTH OK (~20 ns):** auth_check pulso con auth_value=0xA5A5A5A5 → auth_status=1, **auth_timer=0x40 (64)**
@@ -101,6 +136,8 @@
 
 **Conclusión:** Máquina de estados de seguridad con timeout. Pulsos de 1 ciclo para errores. Prioridad: auth_clear > auth_check > privileged_instr > countdown.
 
+
+
 ---
 
 ##### Datapath
@@ -108,6 +145,9 @@
 **Señales monitoreadas:** `clk`, `reset`, `reg_write`, `alu_op[3:0]`, `alu_src_b`, `mem_to_reg`, `rd_addr[3:0]`, `rs1_addr[3:0]`, `rs2_addr[3:0]`, `immediate[31:0]`, `mem_data_in[31:0]`, `alu_result[31:0]`, `reg_data_1[31:0]`, `reg_data_2[31:0]`, `alu_zero`, `status_flags[5:0]`
 
 **Distribución de status_flags\[5:0\]:** `[5]=EXC`, `[4]=AUTH`, `[3]=V`, `[2]=C`, `[1]=N`, `[0]=Z`
+
+![Resultados wave control](https://raw.githubusercontent.com/yen31b/isa-tea-vault-sv/refs/heads/develop/docs/imagenes/datapath.PNG)
+
 
 **Comportamiento observado (ciclo = 10 ns):**
 - **Reset (0–15 ns):** `reset`=1, todas las señales en 0, `status_flags`=0x00
