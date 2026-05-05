@@ -315,9 +315,11 @@ tb_verify: setup
 # ============================================================
 # FLOW: IMAGE/BUFFER PROCESSING
 # ============================================================
-.PHONY: sim_flow
-sim_flow: setup
-	@echo "[sim_flow] Compilando testbench de flujo..."
+# FLOW: compilacion del testbench de flujo (solo compilar)
+# ============================================================
+.PHONY: compile_flow
+compile_flow: setup
+	@echo "[compile_flow] Compilando testbench de flujo..."
 	$(IV) $(FLAGS) -o sim_image_flow \
 		$(SRC)/status_reg.sv \
 		$(SRC)/alu.sv \
@@ -331,8 +333,18 @@ sim_flow: setup
 		$(SRC)/key_vault.sv \
 		$(SRC)/top.sv \
 		$(TB)/tb_image_flow.sv
+	@echo "[compile_flow] Binario listo: $(BIN_FLOW)"
+
+# sim_flow = compilar + ejecutar (uso standalone: make sim_flow)
+.PHONY: sim_flow
+sim_flow: compile_flow
 	@echo "[sim_flow] Ejecutando simulacion..."
 	$(VVP) sim_image_flow
+
+# Direcciones parametrizables (override con POEM_ADDR=0x... o IMG_ADDR=0x...)
+# Rango valido: >= 0x0100 y que el archivo quepa dentro de 64KB (0xFFFF)
+POEM_ADDR ?= 0x1000   # NewHorizon.txt: 960 bytes padded
+IMG_ADDR  ?= 0x1000   # BlueShield.png: 1480 bytes padded
 
 .PHONY: assemble_encrypt
 assemble_encrypt:
@@ -344,47 +356,91 @@ assemble_decrypt:
 	@echo "[asm] Ensamblando decrypt_buffer.asm..."
 	$(PYTHON) -c "import sys; sys.path.append('tools'); import asm; f=open('program.mem', 'w', encoding='ascii'); sys.stdout=f; sys.argv=['', 'asm_ISA/decrypt_buffer.asm']; asm.main(); f.close()"
 
+# ============================================================
+# POEM FLOW: NewHorizon.txt  (958 bytes -> 960 padded)
+# Uso: make test_poem_encrypt
+#      make test_poem_encrypt POEM_ADDR=0x2000
+# ============================================================
 .PHONY: test_poem_encrypt
-test_poem_encrypt: sim_flow assemble_encrypt
-	@echo "[test] Cargando poema..."
-	$(PYTHON) file_loader/load_file.py --input file_loader/NewHorizon.txt --output data.mem --address 0x1000
-	@echo "[test] Cifrando (limite: 300 000 ciclos)..."
+test_poem_encrypt: compile_flow assemble_encrypt
+	@echo "[poem] Cargando NewHorizon.txt en $(POEM_ADDR)..."
+	$(PYTHON) file_loader/load_file.py --input file_loader/NewHorizon.txt --output data.mem --address $(POEM_ADDR)
+	@echo "[poem] Cifrando..."
 	$(VVP) $(BIN_FLOW)
-	@echo "[test] Extrayendo cifrado..."
-	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 960 --output encrypted_poem.bin
+	@echo "[poem] Extrayendo cifrado..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address $(POEM_ADDR) --size 960 --output encrypted_poem.bin
+	@echo "[poem] Cifrado guardado en encrypted_poem.bin (addr=$(POEM_ADDR))"
 
 .PHONY: test_poem_decrypt
-test_poem_decrypt: sim_flow assemble_decrypt
-	@echo "[test] Cargando cifrado previo (encrypted_poem.bin -> data.mem)..."
-	$(PYTHON) file_loader/load_file.py --input encrypted_poem.bin --output data.mem --address 0x1000
-	@echo "[test] Descifrando (limite: 300 000 ciclos)..."
+test_poem_decrypt: compile_flow assemble_decrypt
+	@echo "[poem] Cargando encrypted_poem.bin en $(POEM_ADDR)..."
+	$(PYTHON) file_loader/load_file.py --input encrypted_poem.bin --output data.mem --address $(POEM_ADDR)
+	@echo "[poem] Descifrando..."
 	$(VVP) $(BIN_FLOW)
-	@echo "[test] Extrayendo resultado final..."
-	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 960 --output decrypted_poem.txt
-	@echo "[test] Listo! Revisa decrypted_poem.txt"
+	@echo "[poem] Extrayendo resultado final..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address $(POEM_ADDR) --size 960 --output decrypted_poem.txt
+	@echo "[poem] Listo! Revisa decrypted_poem.txt (addr=$(POEM_ADDR))"
 
 # ============================================================
-# IMAGE FLOW: BlueShield.png  (1477 bytes → 1480 padded)
+# IMAGE FLOW: BlueShield.png  (1477 bytes -> 1480 padded)
+# Uso: make test_img_encrypt
+#      make test_img_encrypt IMG_ADDR=0x2000
 # ============================================================
 .PHONY: test_img_encrypt
-test_img_encrypt: sim_flow assemble_encrypt
-	@echo "[img] Cargando BlueShield.png..."
-	$(PYTHON) file_loader/load_file.py --input file_loader/BlueShield.png --output data.mem --address 0x1000
-	@echo "[img] Cifrando (limite: 300 000 ciclos)..."
+test_img_encrypt: compile_flow assemble_encrypt
+	@echo "[img] Cargando BlueShield.png en $(IMG_ADDR)..."
+	$(PYTHON) file_loader/load_file.py --input file_loader/BlueShield.png --output data.mem --address $(IMG_ADDR)
+	@echo "[img] Cifrando..."
 	$(VVP) $(BIN_FLOW)
 	@echo "[img] Extrayendo imagen cifrada..."
-	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 1480 --output encrypted_img.bin
-	@echo "[img] Cifrado guardado en encrypted_img.bin"
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address $(IMG_ADDR) --size 1480 --output encrypted_img.bin
+	@echo "[img] Cifrado guardado en encrypted_img.bin (addr=$(IMG_ADDR))"
 
 .PHONY: test_img_decrypt
-test_img_decrypt: sim_flow assemble_decrypt
-	@echo "[img] Cargando cifrado previo (encrypted_img.bin -> data.mem)..."
-	$(PYTHON) file_loader/load_file.py --input encrypted_img.bin --output data.mem --address 0x1000
-	@echo "[img] Descifrando (limite: 300 000 ciclos)..."
+test_img_decrypt: compile_flow assemble_decrypt
+	@echo "[img] Cargando encrypted_img.bin en $(IMG_ADDR)..."
+	$(PYTHON) file_loader/load_file.py --input encrypted_img.bin --output data.mem --address $(IMG_ADDR)
+	@echo "[img] Descifrando..."
 	$(VVP) $(BIN_FLOW)
 	@echo "[img] Extrayendo imagen recuperada..."
-	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 1480 --output decrypted_img.png
-	@echo "[img] Listo! Revisa decrypted_img.png"
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address $(IMG_ADDR) --size 1480 --output decrypted_img.png
+	@echo "[img] Listo! Revisa decrypted_img.png (addr=$(IMG_ADDR))"
+
+# ============================================================
+# SHIELD.JPG CON DIRECCION PARAMETRIZABLE
+#
+# Uso:
+#   make test_shield_encrypt               → usa SHIELD_ADDR=0x2000 (default)
+#   make test_shield_encrypt SHIELD_ADDR=0x3000
+#   make test_shield_decrypt SHIELD_ADDR=0x3000
+#
+# IMPORTANTE: usa el mismo SHIELD_ADDR en encrypt y decrypt.
+# Shield.jpg: 20039 bytes → 20040 padded.
+# Rango valido: 0x0100 <= SHIELD_ADDR, SHIELD_ADDR+20040 <= 0xFFFF
+# ============================================================
+SHIELD_ADDR ?= 0x2000
+SHIELD_SIZE  = 20040
+
+.PHONY: test_shield_encrypt
+test_shield_encrypt: compile_flow assemble_encrypt
+	@echo "[shield] Cargando Shield.jpg en direccion $(SHIELD_ADDR)..."
+	$(PYTHON) file_loader/load_file.py --input file_loader/Shield.jpg --output data.mem --address $(SHIELD_ADDR)
+	@echo "[shield] Cifrando (limite: 300 000 ciclos)..."
+	$(VVP) $(BIN_FLOW)
+	@echo "[shield] Extrayendo imagen cifrada..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address $(SHIELD_ADDR) --size $(SHIELD_SIZE) --output encrypted_shield.bin
+	@echo "[shield] Cifrado guardado en encrypted_shield.bin (addr=$(SHIELD_ADDR))"
+
+.PHONY: test_shield_decrypt
+test_shield_decrypt: compile_flow assemble_decrypt
+	@echo "[shield] Cargando cifrado previo (encrypted_shield.bin) en $(SHIELD_ADDR)..."
+	$(PYTHON) file_loader/load_file.py --input encrypted_shield.bin --output data.mem --address $(SHIELD_ADDR)
+	@echo "[shield] Descifrando (limite: 300 000 ciclos)..."
+	$(VVP) $(BIN_FLOW)
+	@echo "[shield] Extrayendo imagen recuperada..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address $(SHIELD_ADDR) --size $(SHIELD_SIZE) --output decrypted_shield.jpg
+	@echo "[shield] Listo! Revisa decrypted_shield.jpg (addr=$(SHIELD_ADDR))"
+
 
 # ============================================================
 # GTKWAVE — visualizar señales
@@ -454,6 +510,7 @@ clean:
 	@echo "[clean] === Salidas de tests (poema, imagen y otros) ==="
 	rm -f encrypted_poem.bin decrypted_poem.txt
 	rm -f encrypted_img.bin  decrypted_img.png
+	rm -f encrypted_shield.bin decrypted_shield.jpg
 	rm -f cifrado.bin
 	@echo "[clean] Listo"
 
