@@ -14,6 +14,8 @@ module tb_register_file;
     end
 
     initial begin
+        $dumpfile("vcd/tb_register_file.vcd");
+        $dumpvars(0, tb_register_file);
         reset = 1; we = 0;
         rs1_addr = 0; rs2_addr = 0; rs3_addr = 0; rd_addr = 0; write_data = 0;
         #15 reset = 0;

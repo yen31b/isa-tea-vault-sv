@@ -191,7 +191,7 @@ module tb_instruction_decode;
     endtask
 
     initial begin
-        $dumpfile("instruction_decode.vcd"); //Primero  se genera el archivo para GTKWave:
+        $dumpfile("vcd/tb_instruction_decode.vcd"); // archivo para GTKWave
         $dumpvars(0, tb_instruction_decode);
 
         $display("\033[36mIniciando pruebas de instruction_decode (16 registros, 4-bit fields)...\033[0m");

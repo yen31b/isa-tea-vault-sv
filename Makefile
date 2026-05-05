@@ -9,6 +9,8 @@
 #   make tb_fetch         → solo instruction_fetch 
 #   make tb_integration → integración P1 + P3
 #   make tb_alu         → solo ALU — pendiente P2
+#   make tb_datapath    → solo datapath
+#   make tb_regfile     → solo register_file
 #   make tb_tea         → prueba de encriptación y descifrado TEA real
 #   make tb_top         → sistema completo — pendiente todos
 #   make wave_dmem      → abre GTKWave para data_mem
@@ -17,6 +19,8 @@
 #   make wave_ctrl        → GTKWave control_unit
 #   make wave_decode      → GTKWave instruction_decode
 #   make wave_fetch       → GTKWave instruction_fetch
+#   make wave_datapath  → GTKWave datapath
+#   make wave_regfile   → GTKWave register_file
 #   make wave_int       → abre GTKWave para integración
 #   make clean          → elimina binarios y .vcd
 
@@ -47,10 +51,11 @@ BIN_TOP    = sim_top
 BIN_PERF   = sim_perf
 BIN_ROUND  = sim_roundtrip
 BIN_FLOW   = sim_image_flow
+BIN_DATAPATH = sim_datapath
+BIN_REGFILE  = sim_regfile
 
 # ============================================================
 # TARGET PRINCIPAL
-# Cuando P2 y P4 estén listos, cambiar a:
 # all: setup tb_dmem tb_vault tb_alu tb_tea tb_integration tb_top
 # ============================================================
 .PHONY: all
@@ -155,6 +160,33 @@ tb_integration: setup
 		$(TB)/tb_integration_cpu_vault.sv
 	@echo "[tb_integration] Simulando..."
 	$(VVP) $(BIN_INT)
+
+# ============================================================
+# register_file
+# ============================================================
+.PHONY: tb_regfile
+tb_regfile: setup
+	@echo "[tb_regfile] Compilando..."
+	$(IV) $(FLAGS) -o $(BIN_REGFILE) \
+		$(SRC)/register_file.sv \
+		$(TB)/tb_register_file.sv
+	@echo "[tb_regfile] Simulando..."
+	$(VVP) $(BIN_REGFILE)
+
+# ============================================================
+# datapath
+# ============================================================
+.PHONY: tb_datapath
+tb_datapath: setup
+	@echo "[tb_datapath] Compilando..."
+	$(IV) $(FLAGS) -o $(BIN_DATAPATH) \
+		$(SRC)/status_reg.sv \
+		$(SRC)/alu.sv \
+		$(SRC)/register_file.sv \
+		$(SRC)/datapath.sv \
+		$(TB)/tb_datapath.sv
+	@echo "[tb_datapath] Simulando..."
+	$(VVP) $(BIN_DATAPATH)
 
 # ============================================================
 # ALU, register_file, datapath 
@@ -359,7 +391,7 @@ test_img_decrypt: sim_flow assemble_decrypt
 # ============================================================
 .PHONY: wave_dmem
 wave_dmem:
-	$(WAVE) $(VCD)/tb_dmem.vcd &
+	$(WAVE) $(VCD)/tb_data_mem.vcd &
 
 .PHONY: wave_vault
 wave_vault:
@@ -382,6 +414,14 @@ wave_fetch:
 	$(WAVE) $(VCD)/tb_instruction_fetch.vcd &
  
 
+.PHONY: wave_datapath
+wave_datapath:
+	$(WAVE) $(VCD)/tb_datapath.vcd &
+
+.PHONY: wave_regfile
+wave_regfile:
+	$(WAVE) $(VCD)/tb_register_file.vcd &
+
 .PHONY: wave_int
 wave_int:
 	$(WAVE) $(VCD)/tb_integration_cpu_vault.vcd &
@@ -402,11 +442,12 @@ clean:
 	@echo "[clean] === Binarios de simulacion ==="
 	rm -f $(BIN_DMEM) $(BIN_VAULT) $(BIN_AUTH) $(BIN_CTRL) \
 	      $(BIN_DECODE) $(BIN_FETCH) $(BIN_INT) $(BIN_ALU) \
-	      $(BIN_TEA) $(BIN_TOP) $(BIN_PERF) $(BIN_ROUND) $(BIN_FLOW)
+	      $(BIN_TEA) $(BIN_TOP) $(BIN_PERF) $(BIN_ROUND) $(BIN_FLOW) $(BIN_DATAPATH) $(BIN_REGFILE)
 	@echo "[clean] === Binarios .vvp huerfanos (formato antiguo) ==="
 	rm -f compile_test.vvp sim_ctrl_test.vvp sim_decode_test.vvp \
 	      sim_fetch_test.vvp sim_integ_test.vvp sim_regfile_test.vvp
 	@echo "[clean] === Archivos VCD ==="
+	      
 	rm -f $(VCD)/*.vcd
 	@echo "[clean] === Archivos de programa y datos ==="
 	rm -f program.mem data.mem tb_program.mem

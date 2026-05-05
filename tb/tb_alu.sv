@@ -33,6 +33,8 @@ module tb_alu;
     localparam ALU_BEQADD = 4'd11;
 
     initial begin
+        $dumpfile("vcd/tb_alu.vcd");
+        $dumpvars(0, tb_alu);
         $monitor("Time: %0t | Op: %h | Auth: %b | A: %h | B: %h | C: %h | Res: %h | Flags: %b | Illegal: %b", 
                  $time, alu_op, auth_in, a, b, c, result, flags, illegal_op);
 

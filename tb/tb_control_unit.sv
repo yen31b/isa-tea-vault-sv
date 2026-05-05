@@ -252,7 +252,7 @@ module tb_control_unit;
     endtask
 
     initial begin
-        $dumpfile("control_unit.vcd"); //Primero genera el archivo para GTKWave:
+        $dumpfile("vcd/tb_control_unit.vcd"); //archivo para GTKWave:
         $dumpvars(0, tb_control_unit);
 
         errors = 0; //inicializa errores:

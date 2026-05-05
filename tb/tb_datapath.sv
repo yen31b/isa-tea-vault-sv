@@ -17,6 +17,10 @@ module tb_datapath;
     logic [31:0] reg_data_2;
     logic        alu_zero;
     logic [5:0]  status_flags;
+    
+    // TEA / Vault extensions
+    logic        index_inc;
+    logic [31:0] k0, k1, k2, k3;
 
     datapath dut (.*);
 
@@ -26,7 +30,10 @@ module tb_datapath;
     end
 
     initial begin
+        $dumpfile("vcd/tb_datapath.vcd");
+        $dumpvars(0, tb_datapath);
         reset = 1; reg_write = 0; alu_op = 0; alu_src_b = 0; mem_to_reg = 0;
+        index_inc = 0; k0 = 0; k1 = 0; k2 = 0; k3 = 0;
         rs1_addr = 0; rs2_addr = 0; rs3_addr = 0; rd_addr = 0;
         immediate = 0; mem_data_in = 0;
         auth_status_in = 0; vault_exc_in = 0;

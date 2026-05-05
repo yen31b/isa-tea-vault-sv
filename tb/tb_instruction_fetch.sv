@@ -65,7 +65,7 @@ module tb_instruction_fetch;
     endtask
 
     initial begin
-        $dumpfile("instruction_fetch.vcd"); //Este archivo guarda las ondas de simulación para verlas en GTKWave.
+        $dumpfile("vcd/tb_instruction_fetch.vcd"); //guarda las ondas de simulación para GTKWave
         $dumpvars(0, tb_instruction_fetch);
 
 
