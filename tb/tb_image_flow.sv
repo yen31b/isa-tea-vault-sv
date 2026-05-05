@@ -6,9 +6,12 @@ module tb_image_flow;
     parameter INSTR_MEM_SIZE = 1024;
     // RAM de datos: 64 KB
     parameter DATA_MEM_SIZE  = 65536;
-    // Limite de ciclos: 300k es suficiente para 120 bloques TEA x 32 rondas
-    // (~80k ciclos utiles) con margen de seguridad.
-    parameter TEST_CYCLES    = 300000;
+    // Limite de ciclos:
+    //   Poema  (120  bloques TEA) ~  66 500 ciclos medidos
+    //   BlueShield (185  bloques) ~ 102 500 ciclos estimados
+    //   Shield.jpg (2505 bloques) ~1 389 000 ciclos estimados
+    // 1 600 000 cubre Shield.jpg con un 15% de margen de seguridad.
+    parameter TEST_CYCLES    = 1600000;
     // AUTH_TIMEOUT grande: evita que la sesion expire durante el loop TEA.
     // Con 120 bloques x ~700 ciclos/bloque ~ 84000 ciclos activos.
     parameter AUTH_TIMEOUT   = 8'd255; // maximo de 8 bits
