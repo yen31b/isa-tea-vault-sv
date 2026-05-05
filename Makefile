@@ -46,6 +46,7 @@ BIN_TEA    = sim_tea
 BIN_TOP    = sim_top
 BIN_PERF   = sim_perf
 BIN_ROUND  = sim_roundtrip
+BIN_FLOW   = sim_image_flow
 
 # ============================================================
 # TARGET PRINCIPAL
@@ -278,6 +279,57 @@ tb_verify: setup
 		$(TB)/tb_verify_system.sv
 	@echo "[tb_verify] Simulando..."
 	$(VVP) sim_verify
+
+# ============================================================
+# FLOW: IMAGE/BUFFER PROCESSING
+# ============================================================
+.PHONY: sim_flow
+sim_flow: setup
+	@echo "[sim_flow] Compilando testbench de flujo..."
+	$(IV) $(FLAGS) -o sim_image_flow \
+		$(SRC)/status_reg.sv \
+		$(SRC)/alu.sv \
+		$(SRC)/register_file.sv \
+		$(SRC)/datapath.sv \
+		$(SRC)/instruction_fetch.sv \
+		$(SRC)/instruction_decode.sv \
+		$(SRC)/control_unit.sv \
+		$(SRC)/auth_unit.sv \
+		$(SRC)/data_mem.sv \
+		$(SRC)/key_vault.sv \
+		$(SRC)/top.sv \
+		$(TB)/tb_image_flow.sv
+	@echo "[sim_flow] Ejecutando simulacion..."
+	$(VVP) sim_image_flow
+
+.PHONY: assemble_encrypt
+assemble_encrypt:
+	@echo "[asm] Ensamblando encrypt_buffer.asm..."
+	$(PYTHON) -c "import sys; sys.path.append('tools'); import asm; f=open('program.mem', 'w', encoding='ascii'); sys.stdout=f; sys.argv=['', 'asm_ISA/encrypt_buffer.asm']; asm.main(); f.close()"
+
+.PHONY: assemble_decrypt
+assemble_decrypt:
+	@echo "[asm] Ensamblando decrypt_buffer.asm..."
+	$(PYTHON) -c "import sys; sys.path.append('tools'); import asm; f=open('program.mem', 'w', encoding='ascii'); sys.stdout=f; sys.argv=['', 'asm_ISA/decrypt_buffer.asm']; asm.main(); f.close()"
+
+.PHONY: test_poem_encrypt
+test_poem_encrypt: sim_flow assemble_encrypt
+	@echo "[test] Cargando poema..."
+	$(PYTHON) file_loader/load_file.py --input file_loader/NewHorizon.txt --output data.mem --address 0x1000
+	@echo "[test] Cifrando (limite: 300 000 ciclos)..."
+	$(VVP) $(BIN_FLOW)
+	@echo "[test] Extrayendo cifrado..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 960 --output encrypted_poem.bin
+
+.PHONY: test_poem_decrypt
+test_poem_decrypt: sim_flow assemble_decrypt
+	@echo "[test] Cargando cifrado previo (encrypted_poem.bin -> data.mem)..."
+	$(PYTHON) file_loader/load_file.py --input encrypted_poem.bin --output data.mem --address 0x1000
+	@echo "[test] Descifrando (limite: 300 000 ciclos)..."
+	$(VVP) $(BIN_FLOW)
+	@echo "[test] Extrayendo resultado final..."
+	$(PYTHON) file_loader/extract_data.py --memory data.mem --address 0x1000 --size 960 --output decrypted_poem.txt
+	@echo "[test] Listo! Revisa decrypted_poem.txt"
 
 # ============================================================
 # GTKWAVE — visualizar señales

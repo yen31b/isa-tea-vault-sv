@@ -22,7 +22,11 @@ module alu (
     assign a_sign = a[31];
     assign b_sign = b[31];
     assign res_sign = result[31];
-    
+
+    // Cantidad de desplazamiento (evita 'constant select in always_*' de iverilog)
+    logic [4:0] shamt;
+    assign shamt = b[4:0];
+
     // ALU Operation Codes
     localparam ALU_ADD    = 4'd0;
     localparam ALU_SUB    = 4'd1;
@@ -67,8 +71,9 @@ module alu (
             end
             ALU_OR:     result = a | b;
             ALU_XOR:    result = a ^ b;
-            ALU_SRL:    result = a >> b[4:0];
-            ALU_SLL:    result = a << b[4:0];
+            ALU_SRL:    result = a >> shamt;
+            ALU_SLL:    result = a << shamt;
+
             ALU_MUL:    result = a * b;
             ALU_MOV:    result = b;
             ALU_AND:    result = a & b;

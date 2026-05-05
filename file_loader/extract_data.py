@@ -27,7 +27,11 @@ def parse_mem(mem_path):
 
             # bytes en hex
             for token in line.split():
-                memory[current_addr] = int(token, 16) & 0xFF
+                try:
+                    memory[current_addr] = int(token, 16) & 0xFF
+                except ValueError:
+                    # Manejar valores 'xx' o indeterminados del simulador
+                    memory[current_addr] = 0x00
                 current_addr += 1
 
     return memory

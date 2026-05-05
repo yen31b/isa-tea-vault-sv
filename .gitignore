@@ -16,3 +16,7 @@ sim_fetch
 sim_vault
 sim_perf
 sim_roundtrip
+*.bin
+decrypted_poem.txt
+*.pyc
+sim_image_flow
